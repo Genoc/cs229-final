@@ -5,6 +5,7 @@ import os
 import pdb
 import re
 import utilities
+import collections
 import pandas as pd 
 from poibin import PoiBin
 from pdb import set_trace as t
@@ -30,9 +31,30 @@ countyFiles = [x for x in arr if 'FVE 20171016.txt' in x]
 predictors = ['Gender', 'Party Code']
 parameterValues = [0. for i in range(3)] # fix this
 
-def constructDesignMatrix(predictors, precinctData):
-	t()
 
+# matrix construction functions 
+
+# flatten function (with thanks to stack overflow)
+def flatten(x):
+    if isinstance(x, collections.Iterable):
+        return [a for i in x for a in flatten(i)]
+    else:
+        return [x]
+
+def createColumns(predictor, precinctData):
+	if predictor == 'Gender':
+		return [[1 if x == 'F' else 0 for x in precinctData[predictor]]]
+	if predictor == 'Party Code':
+		return [[1 if x == 'R' else 0 for x in precinctData[predictor]], 
+			[1 if x == 'R' else 0 for x in precinctData[predictor]]]
+
+def constructDesignMatrix(predictors, precinctData):
+	vectors = []
+	for pred in predictors:
+		newCols = createColumns(pred, precinctData)
+		for col in newCols:
+			vectors.append(col)
+	return np.matrix(vectors).T	
 
 # iterate through the files 
 for countyFile in countyFiles:
@@ -60,15 +82,17 @@ for countyFile in countyFiles:
 	# iterate through the precincts
 	precincts = np.unique(data['Precinct Code'])
 	county = countyFile.replace(' FVE 20171016.txt', '')
+	countyCode = countyMapping[countyMapping['County'] == county.title()]['ID'].values[0]
 	for precinct in precincts:
+
+		# get the people who voted in 2016 in this precinct
 		precinctData = data[(data['Precinct Code'] == precinct) & \
 			pd.notnull(data['2016 GENERAL ELECTION Vote Method'])]
-		constructDesignMatrix(predictors, precinctData)
 
+		# construct the design matrix and determine the probabilities
+		# under the current parameter values 
+		designMatrix = constructDesignMatrix(predictors, precinctData)
+		probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 
-
-# [getElectionName(re.match('Election ([0-9]+)', s).group(1)) for s in data.columns.values if re.match('Election', s)]
-#	map(data.columns[69:], lambda x: )
-# electionMap['Election Name'][electionMap['Election Number'] == 37]
-# 	getElectionName(int(re.match('Election ([0-9]+)', s).group(1))) \
-
+		# pull the actual trump-clinton vote share
+		t()
