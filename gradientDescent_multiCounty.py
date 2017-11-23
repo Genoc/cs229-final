@@ -11,13 +11,13 @@ from poibin import PoiBin
 from pdb import set_trace as t
 
 # constants
-filter = 'CHESTER'
-numIterations = 1000
+countyList = ['CHESTER', 'ADAMS', 'ALLEGHENY']
+numIterations = 10000
 lr = 1e-5
 
 # define model and initial parameters
-predictors = ['Party Code', 'Primary', 'Gender', 'Age'] #'Gender', 'Age', 
-parameterValues = [0. for i in range(8)] # fix this
+predictors = ['Party Code'] #'Primary', Gender', 'Age', 
+parameterValues = [0. for i in range(3)] # fix this
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
@@ -27,11 +27,12 @@ vfColumnNames = pd.read_csv('voterFileColumnNames.csv', header = None)
 
 # get list of files
 arr = os.listdir('../Statewide')
-countyFiles = [x for x in arr if 'FVE 20171016.txt' in x]
-if filter is not None:
-	countyFiles = [i for i in countyFiles if filter in i]
+def checkMatch(list, string):
+	return np.sum([1 if l in string else 0 for l in list])
+countyFiles = [x for x in arr if 'FVE 20171016.txt' in x and checkMatch(countyList, x) == 1]
 
-# iterate through the files
+# pre-process for future usage 
+allData = {} 
 for countyFile in countyFiles:
 
 	# get the county name
@@ -72,35 +73,53 @@ for countyFile in countyFiles:
 	trumpCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
 	clintonCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
 
-
-	# parameter updates 
-	for i in range(numIterations):
-
-		if i % 100 == 0:
-			logLikelihood = util.computeCountyLikelihood(countyFile, vfColumnNames,
-				countyMapping, county, electionResults, predictors, parameterValues)
-			print logLikelihood
-			print parameterValues
-		
-		# sample a precinct at random
-		precinct = random.choice(precincts)
+	# drop everything we don't need
+	countyData = {} 
+	for precinct in precincts:
 
 		# get the people who voted in 2016 in this precinct
-		precinctData = data[(data['Precinct Code'] == precinct) & \
+		precinctDF = data[(data['Precinct Code'] == precinct) & \
 			pd.notnull(data['2016 GENERAL ELECTION Vote Method'])]
 
 		# construct the design matrix and determine the probabilities
 		# under the current parameter values 
-		designMatrix = util.constructDesignMatrix(predictors, precinctData)
-		probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
+		designMatrix = util.constructDesignMatrix(predictors, precinctDF)
 
 		# pull the actual trump-clinton vote share
 		precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value']) == precinct]['Precinct Name'].values[0]
 		trumpVotes = trumpCountyVotes[trumpCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
 		clintonVotes = clintonCountyVotes[clintonCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
 
-		# make a parameter update based on this precicnt and the normal approximation
-		mu = np.sum(probabilities)
-		d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
-		grad = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), axis = 0)
-		parameterValues = parameterValues + lr/(1 + i) * grad
+		# store things
+		precinctData = {}
+		precinctData['Design Matrix'] = designMatrix
+		precinctData['Trump Votes'] = trumpVotes
+		precinctData['Clinton Votes'] = clintonVotes
+		countyData[precinctName] = precinctData
+	allData[county] = countyData
+
+# training loop
+for i in range(numIterations):
+
+	# make periodic updates
+	if i % 50 == 0:
+		l = util.computeLikelihood(allData, parameterValues)
+		print parameterValues
+		print l
+
+	# choose a random precinct from a random county
+	county = random.choice(allData.keys())
+	precinct = random.choice(allData[county].keys())
+
+	# make a parameter update based on this precicnt and the normal approximation
+	designMatrix = allData[county][precinct]['Design Matrix']
+	clintonVotes = allData[county][precinct]['Clinton Votes']
+	trumpVotes = allData[county][precinct]['Trump Votes']
+	probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
+	mu = np.sum(probabilities)
+	d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
+	grad = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), axis = 0)
+	parameterValues = parameterValues + lr/(1 + i) * grad
+
+
+

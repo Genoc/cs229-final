@@ -130,3 +130,28 @@ def computeCountyLikelihood(countyFile, vfColumnNames, countyMapping, county,
 
 
 
+# function to compute the log likelihood for a given county
+def computeLikelihood(allData, parameterValues):
+
+	# iterate through the precincts
+	logLikelihood = 0.0
+	for county in allData.keys():
+		for precinct in allData[county].keys():
+
+			# get all the data
+			designMatrix = allData[county][precinct]['Design Matrix']
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+
+			# get the result
+			pb = PoiBin(probabilities.tolist()[0])
+			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
+				clintonVotes) * probabilities.shape[1])))))
+		
+	return logLikelihood
+
+
+
+
