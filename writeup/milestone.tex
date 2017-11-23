@@ -189,7 +189,7 @@ In order to determine the optimal parameters $\theta$, we need to maximize this 
 
 \subsection{Calculating the Gradient}
 
-To address this problem, we make use of the Lyapunov CLT to observe that the asymptotic distribution of $d_k$, the number of votes for Clinton in precinct $k$, is given by: 
+To address this problem, we make use of the Lyapunov CLT\cite{LyapunovCondition} to observe that the asymptotic distribution of $d_k$, the number of votes for Clinton in precinct $k$, is given by: 
 \[ d_k \stackrel{d} \longrightarrow N \left(\sum_{i} p_{k,i}, \sum_{i} p_{k, i}(1-p_{k, i}) \right) \] 
 where $p_{k, i}$ is the $i^{th}$ entry of $p_k$. This result is proven in the appendix. It allows us to \emph{estimate} the likelihood with a much simpler function of $\theta$. In this case, the contribution of precinct $k$ to the overall log-likelihood is approximately: 
 \[ \ell_k = -log \left( \phi_k\right) + \frac{1}{\phi_k^2} \left( d_k -\mu_k \right)^2  \] 
@@ -247,7 +247,7 @@ Evan and Nitin both worked together to define the problem and scope it out as a 
 
 Define $d_k = \sum_{i = 1}^n d_{k, i}$ to be the number of Democratic votes in precinct $k$, where $d_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. We know that $d_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define:
 \[ s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i}) \] 
-We check the Lyapunov CLT condition for the fourth moment: 
+We check the Lyapunov CLT condition for the fourth moment of the Bernoulli distribution\cite{BernoulliDist}: 
 \begin{align*}
 \lim_{n \to \infty} \frac{1}{s_k^4} \sum_{i = 1}^n E \left( (d_{k, i} - p_{k, i})^4 \right) &= \lim_{n \to \infty} \frac{\sum_{i = 1}^n p_{k, i}(1-p_{k, i}) \left( 3p_{k, i}^2 - 3p_{k, i} + 1 \right)}{\left(\sum_{i = 1}^n p_{k, i} \left( 1- p_{k, i} \right) \right)^2} \stackrel{?} = 0 
 \end{align*}

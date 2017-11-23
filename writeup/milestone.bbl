@@ -30,4 +30,14 @@ N.~Y. Times.
   \url{https://www.nytimes.com/elections/results/pennsylvania-president-clinton-trump},
   2017.
 
+\bibitem{BernoulliDist}
+E.~W. Weisstein.
+\newblock Bernoulli distribution.
+\newblock \url{http://mathworld.wolfram.com/BernoulliDistribution.html}.
+
+\bibitem{LyapunovCondition}
+E.~W. Weisstein.
+\newblock Lyapunov condition.
+\newblock \url{http://mathworld.wolfram.com/LyapunovCondition.html}.
+
 \end{thebibliography}
