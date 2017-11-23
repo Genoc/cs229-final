@@ -216,28 +216,23 @@ Using stochastic gradient ascent, we fit a simple model to the four counties whe
 \includegraphics[scale = 0.4]{TrainingPath}
 \end{figure}
 
-Below we present the coefficients coming out of the model, noting that positive values indicate that a candidate is more likely to vote for Clinton over Trump:
+Below we present the coefficients coming out of the model, noting that positive values indicate that a voter is more likely to vote for Clinton over Trump:
 
 \begin{table}[H]
 \centering
-\label{my-label}
-\begin{tabular}{|l|l|l|l|l|}
-\cline{1-2} \cline{4-5}
-\textbf{Coefficient}      & \textbf{Fitted Value} &  & \textbf{Coefficient}         & \textbf{Fitted Value} \\ \cline{1-2} \cline{4-5} 
-is Chester resident?      & 0.61                  &  & voted in Democratic primary? & 0.18                  \\ \cline{1-2} \cline{4-5} 
-is Adams resident?        & -0.42                 &  & voted in Republican primary? & -0.30                 \\ \cline{1-2} \cline{4-5} 
-is Bedford resident?      & -0.78                 &  & is Female?                   & 0.03                  \\ \cline{1-2} \cline{4-5} 
-is Allgeheny resident?    & 0.39                  &  & is Male?                     & -0.05                 \\ \cline{1-2} \cline{4-5} 
-is registered Democrat?   & 0.30                  &  & Age                          & -0.26                 \\ \cline{1-2} \cline{4-5} 
-is registered Republican? & -0.52                 &  &                              &                       \\ \cline{1-2} \cline{4-5} 
+\begin{tabular}{|l|l|l|l|l|lll}
+\cline{1-2} \cline{4-5} \cline{7-8}
+is Chester resident?   & 0.61  &  & is registered Democrat?      & 0.30  & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{is Female?} & \multicolumn{1}{l|}{0.03}  \\ \cline{1-2} \cline{4-5} \cline{7-8} 
+is Adams resident?     & -0.42 &  & is registered Republican?    & -0.52 & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{is Male?}   & \multicolumn{1}{l|}{-0.05} \\ \cline{1-2} \cline{4-5} \cline{7-8} 
+is Bedford resident?   & -0.78 &  & voted in Democratic primary? & 0.18  & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{Age}        & \multicolumn{1}{l|}{-0.26} \\ \cline{1-2} \cline{4-5} \cline{7-8} 
+is Allgeheny resident? & 0.39  &  & voted in Republican primary? & -0.30 &                       &                                 &                            \\ \cline{1-2} \cline{4-5}
 \end{tabular}
 \end{table}
-
 These results are in line with what we would expect. For example, older voters are more likely to vote for Trump and registered Democrats are more likely to vote for Clinton.
 
 \section{Next Steps}
 
-Our initial results are encouraging and we have a few key next steps as we proceed with our project. Our main next step is to run our model with more data, using as much of Pennsylvania as we can use. We would also like to fit more complex models with more predictors, possibly incorporating data from sources beyond the Pennsylvania voter file itself such as demographics if we can obtain them. As we obtain more data and fit more complex models, it will be important to make sure that we are converging efficiently. We are currently performing vanilla stochastic gradient descent, and we will investigate other optimization techniques such as Adam.
+Our initial results are encouraging. Our main next step is to run our model with more data, using as much of Pennsylvania as we can use. We would also like to fit more complex models with more predictors, possibly incorporating data from sources beyond the Pennsylvania voter file itself such as demographics if we can obtain them. As we obtain more data and fit more complex models, it will be important to make sure that we are converging efficiently. We are currently performing vanilla stochastic gradient descent, and we will investigate other optimization techniques such as Adam.
 
 Once we are able to train on more data, we will split our data into training and test sets instead of training on all of it. Our plan is to train our model on 70\% of the precincts in Pennsylvania and then test on the remaining 30\% to gauge model accuracy, using the total number of Clinton and Trump votes per precinct as the outcome variable. We are are particularly curious to see if our approach (modeling at the individual level) can yield better predictions than modeling at the precinct level by aggregated individual-level features. There are many approaches to modeling at the precinct level (e.g. linear regression, neural nets) that we can compare against. We will also see if we can compare our approach against existing voter models that use polling data.
 
