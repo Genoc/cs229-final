@@ -47,8 +47,9 @@ def createColumns(predictor, precinctData):
 			[1 if x == 'R' else 0 for x in precinctData['2016 GENERAL PRIMARY Party']]]
 
 # design matrix constructor
-def constructDesignMatrix(predictors, precinctData):
-	vectors = [np.ones(precinctData.shape[0]).tolist()]
+def constructDesignMatrix(predictors, precinctData, county, countyList):
+	vectors = [np.ones(precinctData.shape[0]).tolist() if c == county else \
+		np.zeros(precinctData.shape[0]).tolist() for c in countyList]
 	for pred in predictors:
 		newCols = createColumns(pred, precinctData)
 		for col in newCols:
@@ -149,7 +150,30 @@ def computeLikelihood(allData, parameterValues):
 			pb = PoiBin(probabilities.tolist()[0])
 			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
 				clintonVotes) * probabilities.shape[1])))))
-		
+
+	return logLikelihood
+
+# function to compute the log likelihood for a given county
+def computeReferenceLikelihood(allData, parameterValues):
+
+	# iterate through the precincts
+	logLikelihood = 0.0
+	for county in allData.keys():
+		for precinct in allData[county].keys():
+
+			# get all the data
+			designMatrix = allData[county][precinct]['Design Matrix']
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			probabilities = [clintonVotes/float(clintonVotes + trumpVotes) for \
+				i in range(designMatrix.shape[0])]
+
+			# get the result
+			pb = PoiBin(probabilities)
+			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
+				clintonVotes) * len(probabilities))))))
+
 	return logLikelihood
 
 

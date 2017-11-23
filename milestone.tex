@@ -1,0 +1,120 @@
+\documentclass{article}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage{mathrsfs}
+
+
+\newcommand{\real}{\mathbb{R}}
+
+\newcommand{\bsx}{\boldsymbol{x}}
+
+\newcommand{\e}{\mathbb{E}}
+\newcommand{\var}{\mathrm{var}}
+
+\newcommand{\rct}{\mathcal{R}}
+\newcommand{\odb}{\mathcal{O}}
+
+\newcommand{\err}{\varepsilon}
+
+\renewcommand{\le}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+
+\newcommand{\tran}{\mathsf{T}}
+
+\newcommand{\simiid}{\stackrel{\mathrm{iid}}\sim}
+
+\newcommand{\rd}{\,\mathrm d}
+
+% Specialized notation. 
+% Small roman subscripts are more readable than smal italic ones.
+
+\renewcommand{\k}{\mathrm{k}}
+\renewcommand{\r}{\mathrm{r}}
+\newcommand{\s}{\mathrm{s}}
+\renewcommand{\o}{\mathrm{o}}
+
+\newcommand{\rk}{\mathrm{rk}}
+\newcommand{\rkt}{\mathrm{rkt}}
+\newcommand{\rkc}{\mathrm{rkc}}
+\usepackage{amsmath,amssymb,amsfonts,graphicx,nicefrac,mathtools,bbm,color}
+
+\newcommand{\rt}{\mathrm{rt}}
+\newcommand{\rc}{\mathrm{rc}}
+
+\newcommand{\ok}{\mathrm{ok}}
+\newcommand{\okt}{\mathrm{okt}}
+\newcommand{\okc}{\mathrm{okc}}
+
+\newcommand{\ot}{\mathrm{ot}}
+\newcommand{\oc}{\mathrm{oc}}
+
+\newcommand{\sk}{\mathrm{sk}}
+\newcommand{\skt}{\mathrm{skt}}
+\newcommand{\skc}{\mathrm{skc}}
+
+\newcommand{\st}{\mathrm{st}}
+\renewcommand{\sc}{\mathrm{sc}}
+
+
+\newcommand{\nr}{n_{\r}}
+\newcommand{\nrk}{n_{\rk}}
+\newcommand{\nrkt}{n_{\rkt}}
+\newcommand{\nrkc}{n_{\rkc}}
+
+\newcommand{\nrt}{n_{\rt}}
+\newcommand{\nrc}{n_{\rc}}
+
+
+\newcommand{\no}{n_{\o}}
+\newcommand{\nok}{n_{\ok}}
+\newcommand{\nokt}{n_{\okt}}
+\newcommand{\nokc}{n_{\okc}}
+
+\newcommand{\fr}{f_{\r}}
+\newcommand{\fo}{f_{\o}}
+
+\newcommand{\byr}{\bar Y_{\r}}
+\newcommand{\byrk}{\bar Y_{\rk}}
+\newcommand{\byrkt}{\bar Y_{\rkt}}
+\newcommand{\byrkc}{\bar Y_{\rkc}}
+
+\newcommand{\byrt}{\bar Y_{\rt}}
+\newcommand{\byrc}{\bar Y_{\rc}}
+
+\newcommand{\byo}{\bar Y_{\o}}
+\newcommand{\byok}{\bar Y_{\ok}}
+\newcommand{\byokt}{\bar Y_{\okt}}
+\newcommand{\byokc}{\bar Y_{\okc}}
+
+\begin{document}
+
+\section{Progress}
+We have assembled two large datasets for the purposes of the project:
+\begin{itemize}
+\item \textbf{Pennsylvania voter file:} This file contains a row for every registered voter in Pennsylvania, as well as their party registration, limited demographic information (age, gender), and their voting participation over a set of recent primaries and general elections.  
+\item \textbf{Precinct election results:} This file, sourced from the Open Election project, gives the total number of votes received by each candidate in the 2016 presidential election. 
+\end{itemize}
+
+Because these files were sourced from distinct locations, there are some challenges in matching up every precinct in every county. For the milestone, we have focused on four of Pennsylvania's 67 counties: Adams, Allegheny, Bedford, and Chester. These counties are diverse: Allegheny and Chester were won by Clinton, while Bedford and Chester were won by Trump. Together, they represent 1,639 precincts and about 950,000 total votes for Clinton and Trump. 
+
+We have written code to build and train simple models over this dataset. To compute our objective -- the Poisson Binomial log likelihood -- at a specific value of $\beta$, we use the following procedure for a precinct $k$:
+\begin{itemize}
+\item Compute the number of Trump and Clinton votes within $k$ (the average precinct having around 600 votes)
+\item Look up all the voters in $k$ who voted in the 2016 presidential election. Using their data from the voter file, construct the design matrix $X_k$.
+\item For a given value of $\beta$, compute a vector of probabilities $p_k = \sigma(X_k \beta)$ where $\sigma(\cdot)$ is the sigmoid function. Compute the log-likelihood of the Poisson Binomial using this vector of probabilities $p_k$ and the true number of Trump/Clinton votes. 
+\end{itemize}
+
+These values are summed over all precincts to get an overall log-likelihood. 
+
+Note that because the data is imperfect -- and because individuals may vote for third party candidates or fill out a ballot but only vote in other races -- the Clinton/Trump vote total sum is not exactly equal to the number of voters who participated in a given precinct. A quick visual check confirmed that the numbers are within 10\% in most cases. To get around this issue, we take the percentage of Clinton/Trump votes that went to Clinton, multiply this by the length of $p_k$, and round the resulting number to estimate the number of voters in our file who cast a ballot for Clinton or would have done so if they ``had to" choose one of the candidates. 
+
+We want the model to learn the correct values of $\beta$ so as to maximize the overall likelihood of the observed data. But we have a problem: the Poisson Binomial likelihood involves sums over all possible configurations of votes -- i.e. 
+
+To address this problem, we make use of the Lyapunov CLT, to observe that the asymptotic distribution of $d_k$, the number of Democratic votes in precinct $k$, is given by: 
+\[ d_k \stackrel{d} \longrightarrow N \left(\sum_{i} p_{k,i}, \sum_{i} p_{k, i}(1-p_{k, i}) \right) \] 
+where $p_{k, i}$ is the $i^{th}$ entry of $p_k$. This result is proven in the appendix. It allows us to \emph{estimate} the likelihood with a much simpler function of $\beta$. In this case, the contribution of precinct $k$ to the overall log-likelihood is approximately: 
+\[ \ell_k = -log \left( \sum_{i} p_{k, i}(1-p_{k, i})  \right) + \frac{1}{ \sum_{i} p_{k, i}(1-p_{k, i})} \left( d_k - \sum_{i} p_{k,i}\right)^2  \] 
+where $p_{k, i} = \sigma(\beta^T x_{k, i})$
+
+\end{document}
+

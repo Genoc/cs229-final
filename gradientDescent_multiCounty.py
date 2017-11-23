@@ -11,13 +11,13 @@ from poibin import PoiBin
 from pdb import set_trace as t
 
 # constants
-countyList = ['CHESTER', 'ADAMS', 'ALLEGHENY']
+countyList = ['CHESTER', 'ADAMS', 'BEDFORD', 'ALLEGHENY']
 numIterations = 10000
-lr = 1e-5
+lr = 1e-3
 
 # define model and initial parameters
-predictors = ['Party Code'] #'Primary', Gender', 'Age', 
-parameterValues = [0. for i in range(3)] # fix this
+predictors = ['Party Code','Primary', 'Gender', 'Age'] #'Party Code','Primary', 'Gender', 'Age'
+parameterValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
@@ -83,7 +83,7 @@ for countyFile in countyFiles:
 
 		# construct the design matrix and determine the probabilities
 		# under the current parameter values 
-		designMatrix = util.constructDesignMatrix(predictors, precinctDF)
+		designMatrix = util.constructDesignMatrix(predictors, precinctDF, county, countyList)
 
 		# pull the actual trump-clinton vote share
 		precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value']) == precinct]['Precinct Name'].values[0]
@@ -99,11 +99,14 @@ for countyFile in countyFiles:
 	allData[county] = countyData
 
 # training loop
+#print util.computeReferenceLikelihood(allData, parameterValues)
 for i in range(numIterations):
 
 	# make periodic updates
-	if i % 50 == 0:
+	if i % 25 == 0:
 		l = util.computeLikelihood(allData, parameterValues)
+		with open('trainingPath.txt', 'w') as the_file:
+			the_file.write('%s \n' % l)
 		print parameterValues
 		print l
 
@@ -117,9 +120,18 @@ for i in range(numIterations):
 	trumpVotes = allData[county][precinct]['Trump Votes']
 	probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
 	mu = np.sum(probabilities)
+	sigmaSq = np.sum(probabilities*(1-probabilities))
+
 	d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
-	grad = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), axis = 0)
-	parameterValues = parameterValues + lr/(1 + i) * grad
+	grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
+			axis = 0)/sigmaSq
+
+	temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
+	grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
+
+	parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2)
+
+
 
 
 
