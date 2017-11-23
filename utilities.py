@@ -145,11 +145,12 @@ def computeLikelihood(allData, parameterValues):
 			trumpVotes = allData[county][precinct]['Trump Votes']
 
 			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 
 			# get the result
-			pb = PoiBin(probabilities.tolist()[0])
+			pb = PoiBin(probabilities)
 			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
-				clintonVotes) * probabilities.shape[1])))))
+				clintonVotes) * len(probabilities))))))
 
 	return logLikelihood
 

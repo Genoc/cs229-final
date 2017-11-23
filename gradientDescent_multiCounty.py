@@ -105,7 +105,7 @@ for i in range(numIterations):
 	# make periodic updates
 	if i % 25 == 0:
 		l = util.computeLikelihood(allData, parameterValues)
-		with open('trainingPath.txt', 'w') as the_file:
+		with open('trainingPath.txt', 'a') as the_file:
 			the_file.write('%s \n' % l)
 		print parameterValues
 		print l
@@ -129,7 +129,7 @@ for i in range(numIterations):
 	temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
 	grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
 
-	parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2)
+	parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2) #lr/np.sqrt(1 + i)
 
 
 
