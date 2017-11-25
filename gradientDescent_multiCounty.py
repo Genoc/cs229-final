@@ -4,6 +4,7 @@ import numpy as np
 import os
 import pdb
 import re
+import datetime
 import utilities as util
 import collections
 import pandas as pd 
@@ -11,13 +12,18 @@ from poibin import PoiBin
 from pdb import set_trace as t
 
 # constants
-countyList = ['CHESTER', 'ADAMS', 'BEDFORD', 'ALLEGHENY']
+countyList = ['BEDFORD', 'ADAMS', 'CHESTER']#, 'ALLEGHENY']
 numIterations = 10000
 lr = 1e-3
+interceptByCounty = True
 
 # define model and initial parameters
 predictors = ['Party Code','Primary', 'Gender', 'Age'] #'Party Code','Primary', 'Gender', 'Age'
-parameterValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+if interceptByCounty:
+	parameterValues = [0]*(len(countyList) + 2*len(predictors) - (1 if 'Age' in predictors else 0))
+else:
+	parameterValues = [0]*(1 + 2*len(predictors) - (1 if 'Age' in predictors else 0))
+
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
@@ -32,87 +38,24 @@ def checkMatch(list, string):
 countyFiles = [x for x in arr if 'FVE 20171016.txt' in x and checkMatch(countyList, x) == 1]
 
 # pre-process for future usage 
-allData = {} 
-for countyFile in countyFiles:
-
-	# get the county name
-	county = countyFile.replace(' FVE 20171016.txt', '')
-
-	# read in all the county data 
-	data = util.readCountyResults('../Statewide/'+countyFile, vfColumnNames)
-	
-	# get the election mapping and rename columns
-	electionMap = pd.read_csv('../Statewide/' + countyFile.replace('FVE', 'Election Map'), 
-		sep = '\t', header = None)
-	electionMap.columns = ['County', 'Election Number', 'Election Name', 'Election Date']
-	data.columns = [util.makeReplaceName(s, electionMap) for s in data.columns.values]
-	precincts = np.unique(data['District 1'])
-
-	# pull the relevant county results 
-	countyCode = countyMapping[countyMapping['County'] == county.title()]['ID'].values[0]
-	countyElectionResults = electionResults[(electionResults['County Code'] == countyCode) & 
-		(electionResults['Candidate Office Code'] == 'USP')]
-	trumpCountyVotes = countyElectionResults[countyElectionResults['Candidate Last Name'] == 'TRUMP']
-	clintonCountyVotes = countyElectionResults[countyElectionResults['Candidate Last Name'] == 'CLINTON']
-
-	# pull the precinct mapping
-	zoneCodes = pd.read_csv('../Statewide/' + countyFile.replace('FVE', 'Zone Codes'), 
-		sep = '\t', header = None)
-	zoneCodes.columns = ['County', 'Column', 'Value', 'Precinct Name']
-	zoneCodes = zoneCodes[zoneCodes['Column'] == 1]
-
-	# THIS IS AN EXTREMELY HACKY WAY TO TRY TO PAPER OVER SOME OF THE #
-	# MAPPING ISSUES AND I HAVE NO IDEA IF IT WILL WORK BUT OH WELL   #
-	precincts = np.unique(data['District 1'])
-	if len(precincts) != len(trumpCountyVotes):
-		print 'SOMETHING IS WRONG'
-		t()
-	zoneCodes = zoneCodes.sort_values(by = 'Precinct Name')
-	trumpCountyVotes = trumpCountyVotes.sort_values(by = 'Municipality Name')
-	clintonCountyVotes = clintonCountyVotes.sort_values(by = 'Municipality Name')
-	trumpCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
-	clintonCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
-
-	# drop everything we don't need
-	countyData = {} 
-	for precinct in precincts:
-
-		# get the people who voted in 2016 in this precinct
-		precinctDF = data[(data['Precinct Code'] == precinct) & \
-			pd.notnull(data['2016 GENERAL ELECTION Vote Method'])]
-
-		# construct the design matrix and determine the probabilities
-		# under the current parameter values 
-		designMatrix = util.constructDesignMatrix(predictors, precinctDF, county, countyList)
-
-		# pull the actual trump-clinton vote share
-		precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value']) == precinct]['Precinct Name'].values[0]
-		trumpVotes = trumpCountyVotes[trumpCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
-		clintonVotes = clintonCountyVotes[clintonCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
-
-		# store things
-		precinctData = {}
-		precinctData['Design Matrix'] = designMatrix
-		precinctData['Trump Votes'] = trumpVotes
-		precinctData['Clinton Votes'] = clintonVotes
-		countyData[precinctName] = precinctData
-	allData[county] = countyData
+allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
+	electionResults, predictors, countyList, interceptByCounty)
 
 # training loop
 #print util.computeReferenceLikelihood(allData, parameterValues)
 for i in range(numIterations):
 
+	# choose a random precinct from a random county
+	county = random.choice(allData.keys())
+	precinct = random.choice(allData[county].keys())
+
 	# make periodic updates
-	if i % 25 == 0:
+	if i % 20 == 0:
 		l = util.computeLikelihood(allData, parameterValues)
 		with open('trainingPath.txt', 'a') as the_file:
 			the_file.write('%s \n' % l)
 		print parameterValues
 		print l
-
-	# choose a random precinct from a random county
-	county = random.choice(allData.keys())
-	precinct = random.choice(allData[county].keys())
 
 	# make a parameter update based on this precicnt and the normal approximation
 	designMatrix = allData[county][precinct]['Design Matrix']
@@ -128,10 +71,23 @@ for i in range(numIterations):
 
 	temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
 	grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
+	grad2a = np.sum((np.array(designMatrix) * \
+		np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
+			axis = 0)/2/sigmaSq
 
-	parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2) #lr/np.sqrt(1 + i)
+	grad2b = np.sum((np.array(designMatrix) * \
+		np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
+			axis = 0)/2/sigmaSq**2
 
 
+	parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
 
+	#numGrad = util.computeNumericalGradient(util.computePrecinctLikelihood_normalApprox, allData, parameterValues, \
+	#	county, precinct, countyList, interceptByCounty)
+	estGrad = grad1 + grad2a + grad2b
 
+	if np.isnan(estGrad).any():
+		continue
+
+	parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad
 
