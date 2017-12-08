@@ -5,6 +5,7 @@ import re
 from pdb import set_trace as t
 from poibin import PoiBin
 from datetime import datetime
+import pickle
 
 
 # read in election results
@@ -18,6 +19,7 @@ def readElectionResults(path, colNamesPath):
 def readCountyMapping(path):
 	countyMapping = pd.read_csv(path, header = None)
 	countyMapping.columns = ['ID', 'County']
+	countyMapping['County'] = countyMapping['County'].str.upper()
 	return countyMapping
 
 # read in county results 
@@ -72,6 +74,9 @@ def constructDesignMatrix(predictors, precinctData, county, countyList, intercep
 
 # functions for remapping election names
 def getElectionName(q, electionMap):
+	temp = electionMap['Election Name'][electionMap['Election Number'] == q].values
+	if(len(temp) == 0):
+		return str('Election ID' + str(q))
 	return electionMap['Election Name'][electionMap['Election Number'] == q].values[0]
 
 def makeReplaceName(currentName, electionMap):
@@ -103,12 +108,23 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		precincts = np.unique(data['District 1'])
 
 		# pull the relevant county results 
-		countyCode = countyMapping[countyMapping['County'] == county.title()]['ID'].values[0]
+		countyCode = countyMapping[countyMapping['County'] == county.upper()]['ID'].values[0]
 		countyElectionResults = electionResults[(electionResults['County Code'] == countyCode) & 
 			(electionResults['Candidate Office Code'] == 'USP')]
 		trumpCountyVotes = countyElectionResults[countyElectionResults['Candidate Last Name'] == 'TRUMP']
 		clintonCountyVotes = countyElectionResults[countyElectionResults['Candidate Last Name'] == 'CLINTON']
 
+		trumpCountyVotes['Municipality Breakdown Name 1'] = trumpCountyVotes['Municipality Breakdown Name 1'].fillna(0)
+		trumpCountyVotes['Municipality Breakdown Name 2'] = trumpCountyVotes['Municipality Breakdown Name 2'].fillna(0)
+		clintonCountyVotes['Municipality Breakdown Name 1'] = clintonCountyVotes['Municipality Breakdown Name 1'].fillna(0)
+		clintonCountyVotes['Municipality Breakdown Name 2'] = clintonCountyVotes['Municipality Breakdown Name 2'].fillna(0)
+
+		trumpCountyVotes['Municipality Type Code'] =  trumpCountyVotes['Municipality Type Code'].apply(pd.to_numeric, errors='coerce')
+		trumpCountyVotes['Municipality Breakdown Name 1'] =  trumpCountyVotes['Municipality Breakdown Name 1'].apply(pd.to_numeric, errors='coerce')
+		trumpCountyVotes['Municipality Breakdown Name 2'] =  trumpCountyVotes['Municipality Breakdown Name 2'].apply(pd.to_numeric, errors='coerce')
+		clintonCountyVotes['Municipality Breakdown Name 1'] =  clintonCountyVotes['Municipality Breakdown Name 1'].apply(pd.to_numeric, errors='coerce')
+		clintonCountyVotes['Municipality Breakdown Name 2'] =  clintonCountyVotes['Municipality Breakdown Name 2'].apply(pd.to_numeric, errors='coerce')
+    
 		# pull the precinct mapping
 		zoneCodes = pd.read_csv('../Statewide/' + countyFile.replace('FVE', 'Zone Codes'), 
 			sep = '\t', header = None)
@@ -122,8 +138,8 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			print 'SOMETHING IS WRONG'
 			t()
 		zoneCodes = zoneCodes.sort_values(by = 'Precinct Name')
-		trumpCountyVotes = trumpCountyVotes.sort_values(by = 'Municipality Name')
-		clintonCountyVotes = clintonCountyVotes.sort_values(by = 'Municipality Name')
+		trumpCountyVotes = trumpCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
+		clintonCountyVotes = clintonCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
 		trumpCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
 		clintonCountyVotes['Precinct'] = zoneCodes['Precinct Name'].values
 
@@ -140,7 +156,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			designMatrix = constructDesignMatrix(predictors, precinctDF, county, countyList, interceptByCounty)
 
 			# pull the actual trump-clinton vote share
-			precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value']) == precinct]['Precinct Name'].values[0]
+			precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value'], errors='ignore') == precinct]['Precinct Name'].values[0]
 			trumpVotes = trumpCountyVotes[trumpCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
 			clintonVotes = clintonCountyVotes[clintonCountyVotes['Precinct'] == precinctName]['Vote Total'].values[0]
 
@@ -151,6 +167,9 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			precinctData['Clinton Votes'] = clintonVotes
 			countyData[precinctName] = precinctData
 		allData[county] = countyData
+
+	pickle_out = open('allData.pickle', 'wb')
+	pickle.dump(allData, pickle_out)
 	return allData
 
 # function to compute the log likelihood for a given county
