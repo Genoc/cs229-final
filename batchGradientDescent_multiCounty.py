@@ -15,18 +15,20 @@ from pdb import set_trace as t
 countyList = ['BEDFORD', 'ADAMS', 'CHESTER', 'ALLEGHENY']
 numIterations = 10000
 lr = 1e-4
-interceptByCounty = True
+interceptByCounty = False
 
 # define model and initial parameters
-predictors = ['Party Code','Primary', 'Gender', 'Age', 'Registration Length', '2012 General', '2014 General'] 
+predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller'] 
 #'Party Code','Primary', 'Gender', 'Age', 'Registration Length', '2012 General', '2014 General'
 if interceptByCounty:
 	parameterValues = [0]*(len(countyList) + 2*len(predictors) - (1 if 'Age' in predictors else 0) - \
-		(1 if 'Registration Length' in predictors else 0) )
+		(1 if 'Registration Length' in predictors else 0) - (1 if 'Apartment Dweller' in predictors else 0) )
 else:
 	parameterValues = [0]*(1 + 2*len(predictors) - (1 if 'Age' in predictors else 0) - \
-		(1 if 'Registration Length' in predictors else 0) )
+		(1 if 'Registration Length' in predictors else 0) - (1 if 'Apartment Dweller' in predictors else 0) )
 
+#parameterValues = [-0.46843077, 0.1902789, 1.14076289, 0.93802184, 0.37877743, -0.96533939, 0.32600718, \
+#	0.03611664, -0.1169221 , -0.09650584, -0.36834287, 0.19060488, -0.09066446, 0.37921958, -0.06784264, 0.0]
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
