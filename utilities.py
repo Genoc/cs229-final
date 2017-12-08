@@ -56,8 +56,8 @@ def createColumns(predictor, precinctData):
 	elif predictor == '2014 General':
 		return [[1 if x == 'AB' else 0 for x in precinctData['2014 GENERAL ELECTION Vote Method']], 
 			[1 if x == 'AP' else 0 for x in precinctData['2014 GENERAL ELECTION Vote Method']]]
-
-
+	elif predictor == 'Apartment Dweller':
+		return [[0 if pd.isnull(x) else 1 for x in precinctData['Apartment Number']]]
 
 # design matrix constructor
 def constructDesignMatrix(predictors, precinctData, county, countyList, interceptByCounty):
