@@ -15,14 +15,17 @@ from pdb import set_trace as t
 # parse desired training scheme
 stochasticGD = True
 debug = False
+test = True
 if 'batch' in sys.argv:
 	stochasticGD = False
 if 'debug' in sys.argv:
 	debug = True 
+if 'trainOnly' in sys.argv:
+	test = False 
 
 # constants
 if debug:
-	countiesToUse = ['BEDFORD', 'ADAMS', 'CHESTER', 'ARMSTRONG']
+	countiesToUse = ['BEDFORD', 'CHESTER', 'ARMSTRONG']
 else:
 	countiesToUse = ['ADAMS', 'ALLEGHENY', 'ARMSTRONG', 'BEAVER', 'BEDFORD',\
 	'BLAIR', 'BRADFORD', 'BUTLER', 'CAMBRIA', 'CAMERON', 'CARBON', 'CHESTER',\
@@ -32,14 +35,23 @@ else:
 	'PHILADELPHIA', 'PIKE', 'POTTER', 'SCHUYLKILL', 'SNYDER', 'SOMERSET', 'SULLIVAN',\
 	'SUSQUEHANNA', 'UNION', 'WARREN', 'WASHINGTON', 'WYOMING', 'YORK']
 lr = 1e-3 if stochasticGD else 1e-4
-interceptByCounty = True 
+interceptByCounty = False 
 
 # define model and initial parameters
-predictors = ['Party Code','Primary', 'Gender', 'Age'] #'Party Code','Primary', 'Gender', 'Age'
+predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller'] 
+predictorMetaData = {'Party Code': {'len': 2, 'names': ['Registered Dem', 'Registered Rep']}, 
+					 'Primary': {'len': 2, 'names': ['Primary Dem', 'Primary Rep']},
+					 'Gender': {'len': 2, 'names': ['Female', 'Male']},
+					 'Age': {'len': 1, 'names': ['Age']},
+					 '2012 General': {'len': 2, 'names': ['Voted Absentee', 'Voted In Person']},
+					 '2014 General': {'len': 2, 'names': ['Voted Absentee', 'Voted In Person']},
+					 'Apartment Dweller': {'len': 1, 'names': ['Apartment Dweller']}}
 if interceptByCounty:
-	parameterValues = [0]*(len(countiesToUse) + 2*len(predictors) - (1 if 'Age' in predictors else 0))
-else:
-	parameterValues = [0]*(1 + 2*len(predictors) - (1 if 'Age' in predictors else 0))
+	parameterValues = [0]*(len(countiesToUse) + np.sum([predictorMetaData[i]['len'] for i in predictors]))
+	coefficientNames = countiesToUse + [p for i in predictors for p in predictorMetaData[i]['names']]
+else: 
+	parameterValues = [0]*(1 + np.sum([predictorMetaData[i]['len'] for i in predictors]))
+	coefficientNames = ['Intercept'] + [p for i in predictors for p in predictorMetaData[i]['names']]
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
@@ -56,6 +68,16 @@ usableCountyFiles = ['ADAMS FVE 20171016.txt', 'ALLEGHENY FVE 20171016.txt', 'AR
 countyFiles = set(countyFiles).intersection(usableCountyFiles)
 countyList = [x.replace(' FVE 20171016.txt','') for x in countyFiles]
 
+# split into training and testing counties
+np.random.seed(2017)
+if not test:
+	countyTrain = countyList
+else:
+	numHoldouts = np.round(0.3*len(countyList))
+	holdoutIndices = np.random.choice(range(len(countyList)), int(numHoldouts), replace = False)
+	countyTest = [countyList[i] for i in range(len(countyList)) if i in holdoutIndices]
+	countyTrain = [countyList[i] for i in range(len(countyList)) if i not in holdoutIndices]
+
 # pre-process for future usage 
 allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
 	electionResults, predictors, countyList, interceptByCounty)
@@ -66,17 +88,12 @@ if stochasticGD:
 	for i in range(numIterations):
 
 		# choose a random precinct from a random county
-		county = random.choice(allData.keys())
+		county = random.choice(countyTrain)
 		precinct = random.choice(allData[county].keys())
 
 		# make periodic updates
 		if i % 500 == 0:
-			print('Iteration ' + str(i))
-			l = util.computeLikelihood(allData, parameterValues)
-			with open('trainingPath.txt', 'a') as the_file:
-				the_file.write('%s \n' % l)
-			print parameterValues
-			print l
+			util.printProgress(allData, parameterValues, i, predictors, predictorMetaData)
 
 		# make a parameter update based on this precicnt and the normal approximation
 		designMatrix = allData[county][precinct]['Design Matrix']
@@ -102,9 +119,6 @@ if stochasticGD:
 
 
 		parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
-
-		#numGrad = util.computeNumericalGradient(util.computePrecinctLikelihood_normalApprox, allData, parameterValues, \
-		#	county, precinct, countyList, interceptByCounty)
 		estGrad = grad1 + grad2a + grad2b
 
 		if np.isnan(estGrad).any():
@@ -116,19 +130,12 @@ else:
 
 		# report current likelihood
 		if i % 5 == 0:
-			l = util.computeLikelihood(allData, parameterValues)
-			if i == 0:
-				with open('trainingPath.txt', 'w') as the_file:
-					the_file.write('%s \n' % l)
-			else:
-				with open('trainingPath.txt', 'a') as the_file:
-					the_file.write('%s \n' % l)
-			print parameterValues
-			print l
+			util.printProgress(allData, parameterValues, i, coefficientNames)
+		util.evaluateTestSet(allData, parameterValues, countyTest)
 
 		# make a parameter update after seeing all precincts
 		grad = [0.] * len(parameterValues)
-		for county in countyList:
+		for county in countyTrain:
 			for precinct in allData[county].keys():
 				designMatrix = allData[county][precinct]['Design Matrix']
 				clintonVotes = allData[county][precinct]['Clinton Votes']
@@ -153,9 +160,6 @@ else:
 
 
 				parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
-
-				#numGrad = util.computeNumericalGradient(util.computePrecinctLikelihood_normalApprox, allData, parameterValues, \
-				#	county, precinct, countyList, interceptByCounty)
 				estGrad = grad1 + grad2a + grad2b
 
 				if np.isnan(estGrad).any():
