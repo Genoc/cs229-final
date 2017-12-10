@@ -286,7 +286,44 @@ def computeNumericalGradient(function, allData, parameterValues, county, precinc
 
 	return spNumGrad
 
+def printProgress(allData, parameterValues, i, coefficientNames):
+
+	# print progress on likelihood
+	print('Iteration ' + str(i))
+	l = computeLikelihood(allData, parameterValues)
+	print('Likelihood: ' + str(l))
+
+	# store training path
+	if i == 0:
+		with open('trainingPath.txt', 'w') as the_file:
+			the_file.write('%s \n' % l)
+	else:
+		with open('trainingPath.txt', 'a') as the_file:
+			the_file.write('%s \n' % l)
+
+	# print parameter values 
+	for j in range(len(parameterValues)):
+		print(coefficientNames[j] + ': ' + str(parameterValues[j]))
 
 
+# function to compute the log likelihood for a given county
+def evaluateTestSet(allData, parameterValues, countyTest):
+
+	# iterate through the precincts
+	error = 0.0
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			designMatrix = allData[county][precinct]['Design Matrix']
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+
+			# get the result
+			error += (np.sum(probabilities) - clintonVotes)**2
+	print('Test error: ' + str(error))
 
 
