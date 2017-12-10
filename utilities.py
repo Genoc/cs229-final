@@ -93,12 +93,19 @@ def makeReplaceName(currentName, electionMap):
 		q = int(r.group(1))
 		return currentName.replace(r.group(0), getElectionName(q, electionMap))
 
-def preProcess_preloaded(countyFiles, vfColumnNames, countyMapping, electionResults, predictors, countyList,
-	interceptByCounty = False):
-    with open('allData.pickle', 'rb') as handle:
-        allData = pickle.load(handle)
+def load_allData(newDesignMatrices = False, predictors=None, precinctDF=None, countyList=None, interceptByCounty=None, countyCovariates = None):
+	with open('allData.pickle', 'rb') as handle:
+		allData = pickle.load(handle)
     
-    return allData
+	# recalculate if desired
+	if (newDesignMatrices):
+		for county in countyList:
+			for precinctName in allData[county]:
+				precinctDF = allData[county][precinctName]['precinctDF']
+				designMatrix = constructDesignMatrix(predictors, precinctDF, county, countyList, interceptByCounty, countyCovariates)
+				allData[county][precinctName]['Design Matrix'] = designMatrix
+    
+	return allData
 
 # pre process data function
 def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predictors, countyList,
@@ -176,14 +183,16 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# store things
 			precinctData = {}
+			precinctData['precinctDF'] = precinctDF
 			precinctData['Design Matrix'] = designMatrix
 			precinctData['Trump Votes'] = trumpVotes
 			precinctData['Clinton Votes'] = clintonVotes
 			countyData[precinctName] = precinctData
 		allData[county] = countyData
 
-	# pickle_out = open('allData.pickle', 'wb')
-	# pickle.dump(allData, pickle_out)
+	pickle_out = open('allData.pickle', 'wb')
+	pickle.dump(allData, pickle_out)
+
 	return allData
 
 # function to compute the log likelihood for a given county
