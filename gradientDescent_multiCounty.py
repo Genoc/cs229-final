@@ -16,12 +16,16 @@ from pdb import set_trace as t
 stochasticGD = True
 debug = False
 test = True
+regularize = False 
 if 'batch' in sys.argv:
 	stochasticGD = False
 if 'debug' in sys.argv:
 	debug = True 
 if 'trainOnly' in sys.argv:
 	test = False 
+if 'regularize' in sys.argv:
+	regularize = True 
+	lam = 10 
 
 # constants
 if debug:
@@ -140,7 +144,7 @@ else:
 	for i in range(numIterations):
 
 		# report current likelihood
-		if i % 5 == 0:
+		if i % 20 == 0:
 			util.printProgress(allData, parameterValues, i, coefficientNames)
 		util.evaluateTestSet(allData, parameterValues, countyTest)
 
@@ -159,6 +163,7 @@ else:
 				grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
 						axis = 0)/sigmaSq
 
+				# components of the gradients 
 				temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
 				grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
 				grad2a = np.sum((np.array(designMatrix) * \
@@ -169,6 +174,12 @@ else:
 					np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
 						axis = 0)/2/sigmaSq**2
 
+				# compute the gradient 
+				grad = grad1 + grad2a + grad2b
+				if regularize:
+					t()
+					grad -= np.array(lam*parameterValues)
+					t()
 
 				parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
 				estGrad = grad1 + grad2a + grad2b
