@@ -168,6 +168,3 @@ else:
 				grad += estGrad
 
 		parameterValues = parameterValues + lr * estGrad
-
-
-
