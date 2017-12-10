@@ -31,7 +31,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 0.00001 
+	lam = 0.00001
 
 # constants
 if debug:

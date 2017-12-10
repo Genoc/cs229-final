@@ -370,4 +370,49 @@ def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, tota
 				 clintonVotes/float(clintonVotes + trumpVotes))**2
 	print('Test error: ' + str(error/clintonPropSumSq))
 
+def weaklabels(countyList, allData):
+	trumpCount = 0
+	trumpSize = 0
+	hillCount = 0
+	hillSize = 0
 
+	weaklabels = {}
+
+	for county in countyList:
+		temp_precincts = []
+		countyFile = county + ' FVE 20171016.txt'
+		for precinctName in allData[county]:
+			item = allData[county][precinctName]
+			trumpVotes = float(item['Trump Votes'])
+			clintonVotes = float(item['Clinton Votes'])
+			total = trumpVotes + clintonVotes
+
+			ratio = max(trumpVotes/total, clintonVotes/total)
+			if ratio < 0.9:
+				item = {}
+				item['Precinct Name'] = precinctName
+				# item['Trump Votes'] = trumpVotes
+				# item['Clinton Votes'] = clintonVotes
+
+				if (trumpVotes > clintonVotes):
+					item['Winner'] = 'Trump'
+					trumpCount += 1
+					trumpSize += total
+					# print('County: ' + county)
+				else:
+					item['Winner'] = 'Clinton'
+					hillCount += 1
+					hillSize += total
+					if county != 'ALLEGHENY' and county != 'PHILADELPHIA':
+						print('County: ' + county)
+
+				temp_precincts.append(item)
+
+		weaklabels[county] = temp_precincts
+
+	print('Number of overwhelming Trump precincts: ' + str(trumpCount))
+	print('Avg size of overwhelming Trump precinct ' + str(trumpSize/trumpCount))
+	print('Number of overwhelming Clinton precincts: ' + str(hillCount))
+	print('Avg size of overwhelming Trump precinct ' + str(hillSize/hillCount))
+	
+	return weaklabels
