@@ -13,21 +13,21 @@ from poibin import PoiBin
 from pdb import set_trace as t
 
 # parse desired training scheme
-stochasticGD = True
+stochasticGD = False
 debug = False
 test = True
-loadData = False # by default, generate data from scratch
+loadData = True # by default, generate data from scratch
 newDesignMatrices = False # by default don't regenerate design matrces
 regularize = False 
 weakLabels = False 
-if 'batch' in sys.argv:
-	stochasticGD = False
+if 'stochasticGD' in sys.argv:
+	stochasticGD = True 
 if 'debug' in sys.argv:
 	debug = True 
 if 'trainOnly' in sys.argv:
 	test = False
-if 'loadData' in sys.argv:
-	loadData = True
+if 'generate' in sys.argv:
+	loadData = False
 if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
@@ -112,7 +112,10 @@ else:
     allData = util.load_allData()
 
 # get test set clinton proportion var
-clintonVoteMean, clintonPropSumSq, totalVotes = util.computeTestSetStats(allData, parameterValues, countyTest) 
+if not weakLabels:
+	clintonVoteMean, clintonPropSumSq, totalVotes = util.computeTestSetStats(allData, parameterValues, countyTest) 
+else:
+	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
 numIterations = 10000
@@ -172,11 +175,25 @@ else:
 		for county in countyTrain:
 
 			for precinct in allData[county].keys():
+
+				# in the weak labels case, exclude any training counties that we want to test on
+				skip = False
+				if weakLabels:
+					if county in weakLabelDictionary.keys():
+						for item in weakLabelDictionary[county]:
+							if item['Precinct Name'] == precinct:
+								skip = True
+								break
+				if skip:
+					continue 
+
+				# do the evaluation on the test set -- either weak labels or holdout precincts
 				if not weakLabels:
 					util.evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes)
 				else:
-					util.evaluteWeakLabels(allData, parameterValues, weakLabelPrecincts)
+					util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary)
 
+				# pull data for gradient 
 				designMatrix = allData[county][precinct]['Design Matrix']
 				clintonVotes = allData[county][precinct]['Clinton Votes']
 				trumpVotes = allData[county][precinct]['Trump Votes']

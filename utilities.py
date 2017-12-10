@@ -388,9 +388,9 @@ def weaklabels(countyList, allData):
 			total = trumpVotes + clintonVotes
 
 			ratio = max(trumpVotes/total, clintonVotes/total)
-			if ratio < 0.9:
+			if ratio > 0.9:
 				item = {}
-				item['Precinct Name'] = precinctName
+				item['Precinct Name'] = precinctName.strip()
 				# item['Trump Votes'] = trumpVotes
 				# item['Clinton Votes'] = clintonVotes
 
@@ -416,3 +416,36 @@ def weaklabels(countyList, allData):
 	print('Avg size of overwhelming Trump precinct ' + str(hillSize/hillCount))
 	
 	return weaklabels
+
+def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary):
+
+	t()
+# iterate through the precincts and estimate mean
+	clintonVoteTotal = 0.0
+	totalVotes = 0
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			clintonVoteTotal += clintonVotes
+			totalVotes += clintonVotes + trumpVotes
+	clintonVoteMean = clintonVoteTotal/float(totalVotes)
+
+	# now estimate the variance
+	clintonPropSumSq = 0.0 
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			clintonPropSumSq += float(clintonVotes + trumpVotes)/totalVotes*\
+				(clintonVotes/float(clintonVotes + trumpVotes) - clintonVoteMean)**2
+	return (clintonVoteMean, clintonPropSumSq, totalVotes)
+
+
+
