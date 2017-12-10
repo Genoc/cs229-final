@@ -112,7 +112,7 @@ def makeReplaceName(currentName, electionMap):
 		q = int(r.group(1))
 		return currentName.replace(r.group(0), getElectionName(q, electionMap))
 
-def load_allData(newDesignMatrices = False, predictors=None, precinctDF=None, countyList=None, interceptByCounty=None, countyCovariates = None):
+def load_allData(newDesignMatrices = False, predictors=None, countyList=None, interceptByCounty=None, countyCovariates = None):
 	with open('allData.pickle', 'rb') as handle:
 		allData = pickle.load(handle)
     

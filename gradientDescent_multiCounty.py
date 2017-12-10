@@ -16,12 +16,18 @@ from pdb import set_trace as t
 stochasticGD = True
 debug = False
 test = True
+loadData = False # by default, generate data from scratch
+newDesignMatrices = False # by default don't regenerate design matrces
 if 'batch' in sys.argv:
 	stochasticGD = False
 if 'debug' in sys.argv:
 	debug = True 
 if 'trainOnly' in sys.argv:
-	test = False 
+	test = False
+if 'loadData' in sys.argv:
+	loadData = True
+if 'newDesignMatrices' in sys.argv:
+	newDesignMatrices = True
 
 # constants
 if debug:
@@ -90,8 +96,11 @@ else:
 	countyTrain = [countyList[i] for i in range(len(countyList)) if i not in holdoutIndices]
 
 # pre-process for future usage 
-allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
-	electionResults, predictors, countyList, interceptByCounty, countyCovariates)
+if loadData==False:
+	allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
+		electionResults, predictors, countyList, interceptByCounty, countyCovariates)
+else:
+	allData = util.load_allData(newDesignMatrices, predictors, countyList, interceptByCounty, countyCovariates)
 
 # training loop
 numIterations = 10000
