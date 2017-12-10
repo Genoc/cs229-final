@@ -403,8 +403,8 @@ def weaklabels(countyList, allData):
 					item['Winner'] = 'Clinton'
 					hillCount += 1
 					hillSize += total
-					if county != 'ALLEGHENY' and county != 'PHILADELPHIA':
-						print('County: ' + county)
+					#if county != 'ALLEGHENY' and county != 'PHILADELPHIA':
+						#print('County: ' + county)
 
 				temp_precincts.append(item)
 
