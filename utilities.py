@@ -36,7 +36,7 @@ def flatten(x):
         return [x]
 
 # create design matrix columns
-def createColumns(predictor, precinctData):
+def createColumns(predictor, precinctData, countyCovariates):
 	if predictor == 'Gender':
 		return [[1 if x == 'F' else 0 for x in precinctData[predictor]],
 		[1 if x == 'M' else 0 for x in precinctData[predictor]]]
@@ -58,17 +58,22 @@ def createColumns(predictor, precinctData):
 			[1 if x == 'AP' else 0 for x in precinctData['2014 GENERAL ELECTION Vote Method']]]
 	elif predictor == 'Apartment Dweller':
 		return [[0 if pd.isnull(x) else 1 for x in precinctData['Apartment Number']]]
+	elif predictor == 'County White Percent':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['White.Percent'].values[0]
+		return [[val for _ in range(precinctData.shape[1])]]
 
 
 # design matrix constructor
-def constructDesignMatrix(predictors, precinctData, county, countyList, interceptByCounty):
+def constructDesignMatrix(predictors, precinctData, county, countyList,\
+		interceptByCounty, countyCovariates):
 	if interceptByCounty:
 		vectors = [np.ones(precinctData.shape[0]).tolist() if c == county else \
 			np.zeros(precinctData.shape[0]).tolist() for c in countyList]
 	else:
 		vectors = [np.ones(precinctData.shape[0]).tolist()]
 	for pred in predictors:
-		newCols = createColumns(pred, precinctData)
+		newCols = createColumns(pred, precinctData, countyCovariates)
 		for col in newCols:
 			vectors.append(col)
 	return np.matrix(vectors).T	
@@ -97,7 +102,7 @@ def preProcess_preloaded(countyFiles, vfColumnNames, countyMapping, electionResu
 
 # pre process data function
 def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predictors, countyList,
-	interceptByCounty = False):
+	interceptByCounty, countyCovariates):
 	# loop through the countyfiles
 	allData = {}
 	for countyFile in countyFiles:
@@ -161,7 +166,8 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# construct the design matrix and determine the probabilities
 			# under the current parameter values 
-			designMatrix = constructDesignMatrix(predictors, precinctDF, county, countyList, interceptByCounty)
+			designMatrix = constructDesignMatrix(predictors, precinctDF, county, countyList,\
+				interceptByCounty, countyCovariates)
 
 			# pull the actual trump-clinton vote share
 			precinctName = zoneCodes[pd.to_numeric(zoneCodes['Value'], errors='ignore') == precinct]['Precinct Name'].values[0]

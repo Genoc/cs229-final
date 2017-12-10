@@ -38,14 +38,23 @@ lr = 1e-3 if stochasticGD else 1e-4
 interceptByCounty = False 
 
 # define model and initial parameters
-predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller'] 
+predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller',\
+	'County White Percent', 'County Black Percent', 'County Latino Percent', 'County College Educated Percent',\
+	'County Population Density', 'County Income'] 
 predictorMetaData = {'Party Code': {'len': 2, 'names': ['Registered Dem', 'Registered Rep']}, 
 					 'Primary': {'len': 2, 'names': ['Primary Dem', 'Primary Rep']},
 					 'Gender': {'len': 2, 'names': ['Female', 'Male']},
 					 'Age': {'len': 1, 'names': ['Age']},
-					 '2012 General': {'len': 2, 'names': ['Voted Absentee', 'Voted In Person']},
-					 '2014 General': {'len': 2, 'names': ['Voted Absentee', 'Voted In Person']},
-					 'Apartment Dweller': {'len': 1, 'names': ['Apartment Dweller']}}
+					 '2012 General': {'len': 2, 'names': ['2012 Voted Absentee', '2012 Voted In Person']},
+					 '2014 General': {'len': 2, 'names': ['2014 Voted Absentee', '2014 Voted In Person']},
+					 'Apartment Dweller': {'len': 1, 'names': ['Apartment Dweller']}, 
+					 'County White Percent': {'len': 1, 'names': ['County White Percent']},
+					 'County Black Percent': {'len': 1, 'names': ['County Black Percent']},
+					 'County Latino Percent': {'len': 1, 'names': ['County Latino Percent']},
+					 'County College Educated Percent': {'len': 1, 'names': ['County College Educated Percent']},
+					 'County Population Density': {'len': 1, 'names': ['County Population Density']},
+					 'County Income': {'len': 1, 'names': ['County Income']}}
+
 if interceptByCounty:
 	parameterValues = [0]*(len(countiesToUse) + np.sum([predictorMetaData[i]['len'] for i in predictors]))
 	coefficientNames = countiesToUse + [p for i in predictors for p in predictorMetaData[i]['names']]
@@ -56,8 +65,10 @@ else:
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
 	'electionResultsColumnNames.csv')
+countyCovariates = pd.read_csv('./Demographics By County_scaled.csv')
 countyMapping = util.readCountyMapping('countyMapping.csv')
 vfColumnNames = pd.read_csv('voterFileColumnNames.csv', header = None)
+
 
 # get list of files
 arr = os.listdir('../Statewide')
@@ -80,7 +91,7 @@ else:
 
 # pre-process for future usage 
 allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
-	electionResults, predictors, countyList, interceptByCounty)
+	electionResults, predictors, countyList, interceptByCounty, countyCovariates)
 
 # training loop
 numIterations = 10000
