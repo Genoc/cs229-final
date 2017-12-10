@@ -7,7 +7,6 @@ from poibin import PoiBin
 from datetime import datetime
 import pickle
 
-
 # read in election results
 def readElectionResults(path, colNamesPath):
 	electionResults = pd.read_csv(path, header = None)
@@ -112,10 +111,9 @@ def makeReplaceName(currentName, electionMap):
 		q = int(r.group(1))
 		return currentName.replace(r.group(0), getElectionName(q, electionMap))
 
-def load_allData(newDesignMatrices = False, predictors=None, countyList=None, interceptByCounty=None, countyCovariates = None):
-	with open('allData.pickle', 'rb') as handle:
-		allData = pickle.load(handle)
-    
+def load_allData(newDesignMatrices = False, predictors=None, countyList=None, interceptByCounty=None, countyCovariates = None):    
+	allData = pickle.load( open( "allData.pickle", "rb" ) )
+
 	# recalculate if desired
 	if (newDesignMatrices):
 		for county in countyList:
@@ -202,15 +200,13 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# store things
 			precinctData = {}
-#			precinctData['precinctDF'] = precinctDF
+			#precinctData['precinctDF'] = precinctDF
 			precinctData['Design Matrix'] = designMatrix
 			precinctData['Trump Votes'] = trumpVotes
 			precinctData['Clinton Votes'] = clintonVotes
 			countyData[precinctName] = precinctData
 		allData[county] = countyData
-	pickle_out = open('allData.pickle', 'wb')
-	pickle.dump(allData, pickle_out)
-
+	pickle.dump(allData, open( "allData.pickle", "wb" ) )
 	return allData
 
 # function to compute the log likelihood for a given county
