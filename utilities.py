@@ -111,14 +111,17 @@ def makeReplaceName(currentName, electionMap):
 		q = int(r.group(1))
 		return currentName.replace(r.group(0), getElectionName(q, electionMap))
 
-def load_allData(newDesignMatrices = False, predictors=None, countyList=None, interceptByCounty=None, countyCovariates = None):    
+def load_allData(newDesignMatrices = False, vfColumnNames = None, predictors=None, countyList=None, interceptByCounty=None, countyCovariates = None):    
 	allData = pickle.load( open( "allData.pickle", "rb" ) )
 
 	# recalculate if desired
 	if (newDesignMatrices):
 		for county in countyList:
+			countyFile = county + ' FVE 20171016.txt'
+			data = readCountyResults('../Statewide/'+countyFile, vfColumnNames)
 			for precinctName in allData[county]:
-				precinctDF = allData[county][precinctName]['precinctDF']
+				precinctDF = data[(data['Precinct Code'] == precinct) & \
+					pd.notnull(data['2016 GENERAL ELECTION Vote Method'])]
 				designMatrix = constructDesignMatrix(predictors, precinctDF, county, countyList, interceptByCounty, countyCovariates)
 				allData[county][precinctName]['Design Matrix'] = designMatrix
     
@@ -200,7 +203,6 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# store things
 			precinctData = {}
-			#precinctData['precinctDF'] = precinctDF
 			precinctData['Design Matrix'] = designMatrix
 			precinctData['Trump Votes'] = trumpVotes
 			precinctData['Clinton Votes'] = clintonVotes

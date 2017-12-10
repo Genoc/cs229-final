@@ -103,8 +103,10 @@ else:
 if not loadData:
 	allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
 		electionResults, predictors, countyList, interceptByCounty, countyCovariates)
+elif newDesignMatrices:
+	allData = util.load_allData(newDesignMatrices, vfColumnNames, predictors, countyList, interceptByCounty, countyCovariates)
 else:
-	allData = util.load_allData(newDesignMatrices, predictors, countyList, interceptByCounty, countyCovariates)
+    allData = util.load_allData()
 
 # get test set clinton proportion var
 clintonVoteMean, clintonPropSumSq, totalVotes = util.computeTestSetStats(allData, parameterValues, countyTest) 
