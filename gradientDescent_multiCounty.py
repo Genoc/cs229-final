@@ -19,6 +19,7 @@ test = True
 loadData = False # by default, generate data from scratch
 newDesignMatrices = False # by default don't regenerate design matrces
 regularize = False 
+weakLabels = False 
 if 'batch' in sys.argv:
 	stochasticGD = False
 if 'debug' in sys.argv:
@@ -32,6 +33,8 @@ if 'newDesignMatrices' in sys.argv:
 if 'regularize' in sys.argv:
 	regularize = True 
 	lam = 0.00001 
+if 'weakLabels' in sys.argv:
+	weakLabels = True
 
 # constants
 if debug:
@@ -169,7 +172,10 @@ else:
 		for county in countyTrain:
 
 			for precinct in allData[county].keys():
-				util.evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes)
+				if not weakLabels:
+					util.evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes)
+				else:
+					util.evaluteWeakLabels(allData, parameterValues, weakLabelPrecincts)
 
 				designMatrix = allData[county][precinct]['Design Matrix']
 				clintonVotes = allData[county][precinct]['Clinton Votes']

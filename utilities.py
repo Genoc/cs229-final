@@ -371,3 +371,6 @@ def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, tota
 	print('Test error: ' + str(error/clintonPropSumSq))
 
 
+
+
+
