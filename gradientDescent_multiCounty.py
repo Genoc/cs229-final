@@ -177,9 +177,7 @@ else:
 				# compute the gradient 
 				grad = grad1 + grad2a + grad2b
 				if regularize:
-					t()
-					grad -= np.array(lam*parameterValues)
-					t()
+					grad -= lam*np.array(parameterValues)
 
 				parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
 				estGrad = grad1 + grad2a + grad2b
