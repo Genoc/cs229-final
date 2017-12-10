@@ -31,7 +31,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 10 
+	lam = 0.00001 
 
 # constants
 if debug:
@@ -44,7 +44,7 @@ else:
 	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTOUR', 'McKEAN', 'PERRY',\
 	'PHILADELPHIA', 'PIKE', 'POTTER', 'SCHUYLKILL', 'SNYDER', 'SOMERSET', 'SULLIVAN',\
 	'SUSQUEHANNA', 'UNION', 'WARREN', 'WASHINGTON', 'WYOMING', 'YORK']
-lr = 1e-3 if stochasticGD else 1e-4
+lr = 1e-2 if stochasticGD else 1e-4
 interceptByCounty = False 
 
 # define model and initial parameters
@@ -100,11 +100,14 @@ else:
 	countyTrain = [countyList[i] for i in range(len(countyList)) if i not in holdoutIndices]
 
 # pre-process for future usage 
-if loadData==False:
+if not loadData:
 	allData = util.preProcess(countyFiles, vfColumnNames, countyMapping, \
 		electionResults, predictors, countyList, interceptByCounty, countyCovariates)
 else:
 	allData = util.load_allData(newDesignMatrices, predictors, countyList, interceptByCounty, countyCovariates)
+
+# get test set clinton proportion var
+clintonVoteMean, clintonPropSumSq, totalVotes = util.computeTestSetStats(allData, parameterValues, countyTest) 
 
 # training loop
 numIterations = 10000
@@ -154,12 +157,13 @@ else:
 
 		# report current likelihood
 		if i % 20 == 0:
-			util.printProgress(allData, parameterValues, i, coefficientNames)
-		util.evaluateTestSet(allData, parameterValues, countyTest)
+			util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
 
 		# make a parameter update after seeing all precincts
 		grad = [0.] * len(parameterValues)
 		for county in countyTrain:
+
+			util.evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes)
 			for precinct in allData[county].keys():
 				designMatrix = allData[county][precinct]['Design Matrix']
 				clintonVotes = allData[county][precinct]['Clinton Votes']
@@ -184,16 +188,14 @@ else:
 						axis = 0)/2/sigmaSq**2
 
 				# compute the gradient 
-				grad = grad1 + grad2a + grad2b
-				if regularize:
-					grad -= lam*np.array(parameterValues)
-
-				parameterValues = parameterValues + lr/np.sqrt(1 + i) * (grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
 				estGrad = grad1 + grad2a + grad2b
+				if regularize:
+					estGrad -= lam*np.array(parameterValues)
 
-				if np.isnan(estGrad).any():
-					continue
+				parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
+		#		if np.isnan(estGrad).any():
+		#			continue
 
-				grad += estGrad
+		#		grad += estGrad
 
-		parameterValues = parameterValues + lr * estGrad
+		#parameterValues = parameterValues + lr * estGrad
