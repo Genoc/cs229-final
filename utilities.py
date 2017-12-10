@@ -59,6 +59,7 @@ def createColumns(predictor, precinctData):
 	elif predictor == 'Apartment Dweller':
 		return [[0 if pd.isnull(x) else 1 for x in precinctData['Apartment Number']]]
 
+
 # design matrix constructor
 def constructDesignMatrix(predictors, precinctData, county, countyList, interceptByCounty):
 	if interceptByCounty:
@@ -86,6 +87,13 @@ def makeReplaceName(currentName, electionMap):
 	else:
 		q = int(r.group(1))
 		return currentName.replace(r.group(0), getElectionName(q, electionMap))
+
+def preProcess_preloaded(countyFiles, vfColumnNames, countyMapping, electionResults, predictors, countyList,
+	interceptByCounty = False):
+    with open('allData.pickle', 'rb') as handle:
+        allData = pickle.load(handle)
+    
+    return allData
 
 # pre process data function
 def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predictors, countyList,
@@ -168,8 +176,8 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			countyData[precinctName] = precinctData
 		allData[county] = countyData
 
-	pickle_out = open('allData.pickle', 'wb')
-	pickle.dump(allData, pickle_out)
+	# pickle_out = open('allData.pickle', 'wb')
+	# pickle.dump(allData, pickle_out)
 	return allData
 
 # function to compute the log likelihood for a given county
