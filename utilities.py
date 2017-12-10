@@ -61,8 +61,27 @@ def createColumns(predictor, precinctData, countyCovariates):
 	elif predictor == 'County White Percent':
 		val = countyCovariates[countyCovariates['County'].values == \
 			precinctData['County'].values[0].title()]['White.Percent'].values[0]
-		return [[val for _ in range(precinctData.shape[1])]]
-
+		return [[val for _ in range(precinctData.shape[0])]]
+	elif predictor == 'County Black Percent':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['Black.Percent'].values[0]
+		return [[val for _ in range(precinctData.shape[0])]]
+	elif predictor == 'County Latino Percent':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['Latino.Percent'].values[0]
+		return [[val for _ in range(precinctData.shape[0])]]
+	elif predictor == 'County College Educated Percent':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['College.Educated.Percent'].values[0]
+		return [[val for _ in range(precinctData.shape[0])]]
+	elif predictor == 'County Population Density':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['Population.Density'].values[0]
+		return [[val for _ in range(precinctData.shape[0])]]
+	elif predictor == 'County Income':
+		val = countyCovariates[countyCovariates['County'].values == \
+			precinctData['County'].values[0].title()]['Income'].values[0]
+		return [[val for _ in range(precinctData.shape[0])]]
 
 # design matrix constructor
 def constructDesignMatrix(predictors, precinctData, county, countyList,\
