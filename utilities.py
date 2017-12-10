@@ -202,20 +202,19 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# store things
 			precinctData = {}
-			precinctData['precinctDF'] = precinctDF
+#			precinctData['precinctDF'] = precinctDF
 			precinctData['Design Matrix'] = designMatrix
 			precinctData['Trump Votes'] = trumpVotes
 			precinctData['Clinton Votes'] = clintonVotes
 			countyData[precinctName] = precinctData
 		allData[county] = countyData
-
 	pickle_out = open('allData.pickle', 'wb')
 	pickle.dump(allData, pickle_out)
 
 	return allData
 
 # function to compute the log likelihood for a given county
-def computeLikelihood(allData, parameterValues):
+def computeLikelihood(allData, parameterValues, approx = False):
 
 	# iterate through the precincts
 	logLikelihood = 0.0
@@ -231,32 +230,13 @@ def computeLikelihood(allData, parameterValues):
 			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 
 			# get the result
-			pb = PoiBin(probabilities)
-			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
-				clintonVotes) * len(probabilities))))))
-
-	return logLikelihood
-
-# function to compute the log likelihood for a given county
-def computeReferenceLikelihood(allData, parameterValues):
-
-	# iterate through the precincts
-	logLikelihood = 0.0
-	for county in allData.keys():
-		for precinct in allData[county].keys():
-
-			# get all the data
-			designMatrix = allData[county][precinct]['Design Matrix']
-			clintonVotes = allData[county][precinct]['Clinton Votes']
-			trumpVotes = allData[county][precinct]['Trump Votes']
-
-			probabilities = [clintonVotes/float(clintonVotes + trumpVotes) for \
-				i in range(designMatrix.shape[0])]
-
-			# get the result
-			pb = PoiBin(probabilities)
-			logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
-				clintonVotes) * len(probabilities))))))
+			if approx: 
+				logLikelihood += computePrecinctLikelihood_normalApprox(parameterValues, \
+					allData, county, precinct)
+			else: 
+				pb = PoiBin(probabilities)
+				logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
+					clintonVotes) * len(probabilities))))))
 
 	return logLikelihood
 
@@ -320,11 +300,11 @@ def computeNumericalGradient(function, allData, parameterValues, county, precinc
 
 	return spNumGrad
 
-def printProgress(allData, parameterValues, i, coefficientNames):
+def printProgress(allData, parameterValues, i, coefficientNames, approx = False):
 
 	# print progress on likelihood
 	print('Iteration ' + str(i))
-	l = computeLikelihood(allData, parameterValues)
+	l = computeLikelihood(allData, parameterValues, approx)
 	print('Likelihood: ' + str(l))
 
 	# store training path
@@ -339,9 +319,39 @@ def printProgress(allData, parameterValues, i, coefficientNames):
 	for j in range(len(parameterValues)):
 		print(coefficientNames[j] + ': ' + str(parameterValues[j]))
 
-
 # function to compute the log likelihood for a given county
-def evaluateTestSet(allData, parameterValues, countyTest):
+def computeTestSetStats(allData, parameterValues, countyTest):
+
+	# iterate through the precincts and estimate mean
+	clintonVoteTotal = 0.0
+	totalVotes = 0
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			clintonVoteTotal += clintonVotes
+			totalVotes += clintonVotes + trumpVotes
+	clintonVoteMean = clintonVoteTotal/float(totalVotes)
+
+	# now estimate the variance
+	clintonPropSumSq = 0.0 
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+
+			clintonPropSumSq += float(clintonVotes + trumpVotes)/totalVotes*\
+				(clintonVotes/float(clintonVotes + trumpVotes) - clintonVoteMean)**2
+	return (clintonVoteMean, clintonPropSumSq, totalVotes)
+
+
+# function to compare test set against predictions
+def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes):
 
 	# iterate through the precincts
 	error = 0.0
@@ -357,7 +367,9 @@ def evaluateTestSet(allData, parameterValues, countyTest):
 			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 
 			# get the result
-			error += (np.sum(probabilities) - clintonVotes)**2
-	print('Test error: ' + str(error))
+			error += float(clintonVotes + trumpVotes)/totalVotes*\
+				(np.sum(probabilities)/float(len(probabilities)) -\
+				 clintonVotes/float(clintonVotes + trumpVotes))**2
+	print('Test error: ' + str(error/clintonPropSumSq))
 
 
