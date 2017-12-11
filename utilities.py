@@ -206,7 +206,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			precinctData['Design Matrix'] = designMatrix
 			precinctData['Trump Votes'] = trumpVotes
 			precinctData['Clinton Votes'] = clintonVotes
-			countyData[precinctName] = precinctData
+			countyData[precinctName.strip()] = precinctData
 		allData[county] = countyData
 	pickle.dump(allData, open( "allData.pickle", "wb" ) )
 	return allData
@@ -419,33 +419,18 @@ def weaklabels(countyList, allData):
 
 def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary):
 
+	# iterate through the precincts and estimate mean
+	pairs = []
+	for county in weakLabelDictionary.keys():
+		for item in weakLabelDictionary[county]:
+
+			# get all the data
+			precinct = item['Precinct Name']
+			if precinct in allData[county].keys():
+				designMatrix = allData[county][precinct]['Design Matrix']
+			else:
+				t()
+
+			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+			pairs += [(p, 1) if item['Winner'] == 'Trump' else (p, 0) for p in probabilities.tolist()[0]]
 	t()
-# iterate through the precincts and estimate mean
-	clintonVoteTotal = 0.0
-	totalVotes = 0
-	for county in countyTest:
-		for precinct in allData[county].keys():
-
-			# get all the data
-			clintonVotes = allData[county][precinct]['Clinton Votes']
-			trumpVotes = allData[county][precinct]['Trump Votes']
-
-			clintonVoteTotal += clintonVotes
-			totalVotes += clintonVotes + trumpVotes
-	clintonVoteMean = clintonVoteTotal/float(totalVotes)
-
-	# now estimate the variance
-	clintonPropSumSq = 0.0 
-	for county in countyTest:
-		for precinct in allData[county].keys():
-
-			# get all the data
-			clintonVotes = allData[county][precinct]['Clinton Votes']
-			trumpVotes = allData[county][precinct]['Trump Votes']
-
-			clintonPropSumSq += float(clintonVotes + trumpVotes)/totalVotes*\
-				(clintonVotes/float(clintonVotes + trumpVotes) - clintonVoteMean)**2
-	return (clintonVoteMean, clintonPropSumSq, totalVotes)
-
-
-
