@@ -93,7 +93,7 @@ countyFiles = set(countyFiles).intersection(usableCountyFiles)
 countyList = [x.replace(' FVE 20171016.txt','') for x in countyFiles]
 
 # split into training and testing counties
-np.random.seed(2017)
+np.random.seed(11)
 if not test:
 	countyTrain = countyList
 else:
@@ -112,13 +112,16 @@ else:
     allData = util.load_allData()
 
 # get test set clinton proportion var
-if not weakLabels:
-	clintonVoteMean, clintonPropSumSq, totalVotes = util.computeTestSetStats(allData, parameterValues, countyTest) 
-else:
+if not weakLabels and test:
+	clintonVoteMeanTrain, clintonPropSumSqTrain, totalVotesTrain = \
+		util.computeTestSetStats(allData, parameterValues, countyTrain) 
+	clintonVoteMeanTest, clintonPropSumSqTest, totalVotesTest = \
+		util.computeTestSetStats(allData, parameterValues, countyTest) 
+elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
-numIterations = 10000
+numIterations = 10000 if stochasticGD else 20
 if stochasticGD:
 	for i in range(numIterations):
 
@@ -165,14 +168,25 @@ if stochasticGD:
 			continue
 		parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad
 else: 
+	isFirst = True 
 	for i in range(numIterations):
 
 		# report current likelihood
 		util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
 
-		# make a parameter update after seeing all precincts
-		#grad = [0.] * len(parameterValues)
+		# iterate through counties
 		for county in countyTrain:
+
+			# do the evaluation on the test set -- either weak labels or holdout precincts
+			# if not weakLabels:
+			# 	util.evaluateTestSet(allData, parameterValues, countyTrain, \
+			# 		clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
+			# 	util.evaluateTestSet(allData, parameterValues, countyTest, \
+			# 		clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
+			# 	isFirst = False 
+			# else:
+			# 	c, t = util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary)
+			# 	print c, t
 
 			for precinct in allData[county].keys():
 
@@ -186,12 +200,6 @@ else:
 								break
 				if skip:
 					continue 
-
-				# do the evaluation on the test set -- either weak labels or holdout precincts
-				if not weakLabels:
-					util.evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes)
-				else:
-					util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary)
 
 				# pull data for gradient 
 				designMatrix = allData[county][precinct]['Design Matrix']
@@ -207,7 +215,7 @@ else:
 
 				# components of the gradients 
 				temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
-				grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
+				#grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
 				grad2a = np.sum((np.array(designMatrix) * \
 					np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
 						axis = 0)/2/sigmaSq
@@ -221,9 +229,12 @@ else:
 				if regularize:
 					estGrad -= lam*np.array(parameterValues)
 
-				parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
+				# stability checks 
 				if np.isnan(estGrad).any():
 					continue
+				if np.dot(estGrad, estGrad) > 1e5:
+					continue 
+				parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
 
 		#		grad += estGrad
 

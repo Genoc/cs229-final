@@ -5,7 +5,9 @@ import re
 from pdb import set_trace as t
 from poibin import PoiBin
 from datetime import datetime
+from sklearn import metrics
 import pickle
+import matplotlib.pyplot as plt
 
 # read in election results
 def readElectionResults(path, colNamesPath):
@@ -349,7 +351,7 @@ def computeTestSetStats(allData, parameterValues, countyTest):
 
 
 # function to compare test set against predictions
-def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes):
+def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes, name, isFirst):
 
 	# iterate through the precincts
 	error = 0.0
@@ -368,7 +370,14 @@ def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, tota
 			error += float(clintonVotes + trumpVotes)/totalVotes*\
 				(np.sum(probabilities)/float(len(probabilities)) -\
 				 clintonVotes/float(clintonVotes + trumpVotes))**2
-	print('Test error: ' + str(error/clintonPropSumSq))
+
+	# store results path
+	if isFirst:
+		with open('rSquared' + name + '.txt', 'w') as the_file:
+			the_file.write('%s \n' % (1.0-error/clintonPropSumSq))
+	else:
+		with open('rSquared' + name + '.txt', 'a') as the_file:
+			the_file.write('%s \n' % (1.0-error/clintonPropSumSq))
 
 def weaklabels(countyList, allData):
 	trumpCount = 0
@@ -432,5 +441,24 @@ def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary):
 				t()
 
 			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
-			pairs += [(p, 1) if item['Winner'] == 'Trump' else (p, 0) for p in probabilities.tolist()[0]]
-	t()
+			pairs += [(p, 1) if item['Winner'] == 'Clinton' else (p, 0) for p in probabilities.tolist()[0]]
+	
+	# compute ROC AUC
+	clintonProbs = 0.0
+	trumpProbs = 0.0
+	clintonCount = 0
+	trumpCount = 0
+	for pair in pairs:
+		if pair[1] == 1:
+			clintonProbs += pair[0]
+			clintonCount += 1
+		else:
+			trumpProbs += pair[0]
+			trumpCount += 1
+
+	return (clintonProbs/clintonCount, trumpProbs/trumpCount)
+
+
+
+	
+
