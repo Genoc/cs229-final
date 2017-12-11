@@ -32,7 +32,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 0.00001 
+	lam = 1.0 
 if 'weakLabels' in sys.argv:
 	weakLabels = True
 
@@ -121,7 +121,7 @@ elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
-numIterations = 10000 if stochasticGD else 20
+numIterations = 10000 if stochasticGD else 200
 if stochasticGD:
 	for i in range(numIterations):
 
@@ -174,20 +174,19 @@ else:
 		# report current likelihood
 		util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
 
+		# do the evaluation on the test set -- either weak labels or holdout precincts
+		if not weakLabels and test:
+			util.evaluateTestSet(allData, parameterValues, countyTrain, \
+				clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
+			util.evaluateTestSet(allData, parameterValues, countyTest, \
+				clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
+			isFirst = False 
+		elif weakLabels and test:
+			if i in [0, 1, 5, 10, 19]:
+				util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary, i)
+
 		# iterate through counties
 		for county in countyTrain:
-
-			# do the evaluation on the test set -- either weak labels or holdout precincts
-			# if not weakLabels:
-			# 	util.evaluateTestSet(allData, parameterValues, countyTrain, \
-			# 		clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
-			# 	util.evaluateTestSet(allData, parameterValues, countyTest, \
-			# 		clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
-			# 	isFirst = False 
-			# else:
-			# 	c, t = util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary)
-			# 	print c, t
-
 			for precinct in allData[county].keys():
 
 				# in the weak labels case, exclude any training counties that we want to test on

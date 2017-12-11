@@ -225,7 +225,6 @@ def computeLikelihood(allData, parameterValues, approx = False):
 			designMatrix = allData[county][precinct]['Design Matrix']
 			clintonVotes = allData[county][precinct]['Clinton Votes']
 			trumpVotes = allData[county][precinct]['Trump Votes']
-
 			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 
@@ -426,7 +425,7 @@ def weaklabels(countyList, allData):
 	
 	return weaklabels
 
-def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary):
+def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary, iter):
 
 	# iterate through the precincts and estimate mean
 	pairs = []
@@ -443,22 +442,78 @@ def evaluteWeakLabels(allData, parameterValues, weakLabelDictionary):
 			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 			pairs += [(p, 1) if item['Winner'] == 'Clinton' else (p, 0) for p in probabilities.tolist()[0]]
 	
-	# compute ROC AUC
-	clintonProbs = 0.0
-	trumpProbs = 0.0
-	clintonCount = 0
-	trumpCount = 0
-	for pair in pairs:
-		if pair[1] == 1:
-			clintonProbs += pair[0]
-			clintonCount += 1
-		else:
-			trumpProbs += pair[0]
-			trumpCount += 1
+	# pull predictions 
+	preds = [x[0] for x in pairs]
+	y = [x[1] for x in pairs]
+	fpr, tpr, threshold = metrics.roc_curve(y, preds)
+	roc_auc = metrics.auc(fpr, tpr)
 
-	return (clintonProbs/clintonCount, trumpProbs/trumpCount)
+	# plot results
+	fig = plt.figure()
+	plt.title('Receiver Operating Characteristic')
+	plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+	plt.legend(loc = 'lower right')
+	plt.plot([0, 1], [0, 1],'r--')
+	plt.xlim([0, 1])
+	plt.ylim([0, 1])
+	plt.ylabel('True Positive Rate')
+	plt.xlabel('False Positive Rate')
+	fig.savefig('./landslideROC' + str(iter) + '.png')
+
+	fig2 = plt.figure()
+	bins = np.linspace(0, 1, 100)
+	plt.hist([x[0] for x in pairs if x[1] == 0], bins, alpha=0.5, label='R Landslide Precinct Voters', color = 'red', normed = True)
+	plt.hist([x[0] for x in pairs if x[1] == 1], bins, alpha=0.5, label='D Landslide Precinct Voters', color = 'blue', normed = True)
+	plt.legend(loc='upper center')
+	plt.ylabel('Proportion of Voters')
+	plt.xlabel('Predicted Probability of Voting Democratic')
+	fig2.savefig('./lanslideHist' + str(iter) + '.png')
 
 
 
-	
+def evaluatePrimaryVoters(allData, parameterValues, countyTest, iter):
 
+	# iterate through the precincts and estimate mean
+	pairs = [] 
+	for county in countyTest:
+		for precinct in allData[county].keys():
+
+			# get all the data
+			des = allData[county][precinct]['Design Matrix']
+			designMatrix = np.delete(des, [3,4], axis = 1)
+
+
+			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+
+			for i in range(len(probabilities)):
+				if des[:,3][i]==1:
+					pairs += [(probabilities[i], 1)]
+				if des[:,4][i]==1:
+					pairs += [(probabilities[i], 0)]
+
+	preds = [x[0] for x in pairs]
+	y = [x[1] for x in pairs]
+	fpr, tpr, threshold = metrics.roc_curve(y, preds)
+	roc_auc = metrics.auc(fpr, tpr)
+
+	# method I: plt
+	fig = plt.figure()
+	plt.title('Receiver Operating Characteristic')
+	plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+	plt.legend(loc = 'lower right')
+	plt.plot([0, 1], [0, 1],'r--')
+	plt.xlim([0, 1])
+	plt.ylim([0, 1])
+	plt.ylabel('True Positive Rate')
+	plt.xlabel('False Positive Rate')
+	fig.savefig('./roc' + str(iter) + '.png')
+
+	fig2 = plt.figure()
+	bins = np.linspace(0, 1, 100)
+	plt.hist([x[0] for x in pairs if x[1] == 0], bins, alpha=0.5, label='Republican Primary Voters', color = 'red')
+	plt.hist([x[0] for x in pairs if x[1] == 1], bins, alpha=0.5, label='Democratic Primary Voters', color = 'blue')
+	plt.legend(loc='upper center')
+	plt.ylabel('Total Voters')
+	plt.xlabel('Predicted Probability of Voting Democratic')
+	fig2.savefig('./primaryVoters' + str(iter) + '.png')
