@@ -229,7 +229,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 	return allData
 
 # function to compute the log likelihood for a given county
-def computeLikelihood(allData, parameterValues, approx = False):
+def computeLikelihood(allData, parameterValues, approx = False, neuralNet = False):
 
 	# iterate through the precincts
 	logLikelihood = 0.0
@@ -240,13 +240,18 @@ def computeLikelihood(allData, parameterValues, approx = False):
 			designMatrix = allData[county][precinct]['Design Matrix']
 			clintonVotes = allData[county][precinct]['Clinton Votes']
 			trumpVotes = allData[county][precinct]['Trump Votes']
-			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
-			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+			if not neuralNet:
+				probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+				probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+			else:
+				hidden = designMatrix.dot(parameterValues['W1']) + np.transpose(parameterValues['b1'])
+				final = sigmoid(hidden).dot(parameterValues['W2']) + parameterValues['b2']
+				probabilities = np.array(sigmoid(final))
 
 			# get the result
 			if approx: 
 				logLikelihood += computePrecinctLikelihood_normalApprox(parameterValues, \
-					allData, county, precinct)
+					allData, county, precinct, neuralNet)
 			else: 
 				pb = PoiBin(probabilities)
 				logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
@@ -271,18 +276,25 @@ def computePrecinctLikelihood(parameterValues, allData, county, precinct):
 		clintonVotes) * len(probabilities))))))
 
 # normal approximation
-def computePrecinctLikelihood_normalApprox(parameterValues, allData, county, precinct):
+def computePrecinctLikelihood_normalApprox(parameterValues, allData, county, precinct, neuralNet = False):
 
 	# get all the data
 	designMatrix = allData[county][precinct]['Design Matrix']
 	clintonVotes = allData[county][precinct]['Clinton Votes']
 	trumpVotes = allData[county][precinct]['Trump Votes']
 
+	# compute the probabilities 
+	if not neuralNet:
+		probabilities = np.array(1/(1 + np.exp(-designMatrix.dot(parameterValues))))
+		d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[1])
+	else:
+		hidden = designMatrix.dot(parameterValues['W1']) + np.transpose(parameterValues['b1'])
+		final = sigmoid(hidden).dot(parameterValues['W2']) + parameterValues['b2']
+		probabilities = np.array(sigmoid(final))
+		d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[0])
 
-	probabilities = np.array(1/(1 + np.exp(-designMatrix.dot(parameterValues))))
 	mu = np.sum(probabilities)
 	sd = np.sqrt(np.sum(probabilities * (1-probabilities)))
-	d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[1])
 
 	# get the result
 	return np.log(max(2e-16, scipy.stats.norm(mu, sd).pdf(d)))
@@ -365,7 +377,8 @@ def computeTestSetStats(allData, parameterValues, countyTest):
 
 
 # function to compare test set against predictions
-def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes, name, isFirst):
+def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, totalVotes,
+		name, isFirst, neuralNet = False):
 
 	# iterate through the precincts
 	error = 0.0
@@ -377,8 +390,13 @@ def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, tota
 			clintonVotes = allData[county][precinct]['Clinton Votes']
 			trumpVotes = allData[county][precinct]['Trump Votes']
 
-			probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
-			probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+			if not neuralNet:
+				probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
+				probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
+			else:
+				hidden = sigmoid(designMatrix.dot(parameterValues['W1']) + np.transpose(parameterValues['b1']))
+				final = hidden.dot(parameterValues['W2']) + parameterValues['b2']
+				probabilities = np.array(sigmoid(final))
 
 			# get the result
 			error += float(clintonVotes + trumpVotes)/totalVotes*\
@@ -532,3 +550,37 @@ def evaluatePrimaryVoters(allData, parameterValues, countyTest, iter):
 	plt.ylabel('Total Voters')
 	plt.xlabel('Predicted Probability of Voting Democratic')
 	fig2.savefig('./primaryVoters' + str(iter) + '.png')
+
+
+def printProgress_nn(allData, parameterValues, i, approx = False):
+
+	# print progress on likelihood
+	print('Iteration ' + str(i))
+	l = computeLikelihood(allData, parameterValues, approx, True)
+	print('Likelihood: ' + str(l))
+
+	# store training path
+	if i == 0:
+		with open('trainingPath.txt', 'w') as the_file:
+			the_file.write('%s \n' % l)
+	else:
+		with open('trainingPath.txt', 'a') as the_file:
+			the_file.write('%s \n' % l)
+
+
+# sigmoid function 
+def sigmoid(x):
+	"""
+	Compute the sigmoid function for the input here.
+	"""
+	### YOUR CODE HERE
+
+	# stabilization trick thanks to 
+	# https://timvieira.github.io/blog/post/2014/02/11/exp-normalize-trick/	
+	sx = np.array(x.flatten())
+
+	sx[sx > 0] = 1/(1 + np.exp(-sx[sx > 0]))
+	sx[sx < 0] = np.exp(sx[sx < 0])/(1 + np.exp(sx[sx < 0]))
+	sx = np.reshape(sx, newshape = x.shape)
+	### END YOUR CODE
+	return np.matrix(sx)

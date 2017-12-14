@@ -16,8 +16,8 @@ from pdb import set_trace as t
 stochasticGD = False
 debug = False
 test = True
-loadData = True # by default, load data
-newDesignMatrices = False # by default don't regenerate design matrces
+loadData = True # by default, do not generate data from scratch
+newDesignMatrices = False # by default regenerate design matrces
 regularize = False 
 weakLabels = False 
 if 'stochasticGD' in sys.argv:
@@ -32,7 +32,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 1.0 
+	lam = 0.25
 if 'weakLabels' in sys.argv:
 	weakLabels = True
 
@@ -42,13 +42,12 @@ if debug:
 else:
 	countiesToUse = ['ADAMS', 'ALLEGHENY', 'ARMSTRONG', 'BEAVER', 'BEDFORD',\
 	'BLAIR', 'BRADFORD', 'BUTLER', 'CAMBRIA', 'CAMERON', 'CARBON', 'CHESTER',\
-	'CLEARFIELD', 'CLINTON', 'COLUMBIA', 'CRAWFORD', 'DELAWARE', 'ERIE', 'FOREST', 'FRANKLIN',\
+	'CLEARFIELD', 'CLINTON', 'COLUMBIA', 'CRAWFORD', 'ERIE', 'FOREST', 'FRANKLIN',\
 	'GREENE', 'INDIANA', 'JEFFERSON', 'JUNIATA', 'LAWRENCE', 'LEBANON', 'LUZERNE',\
-	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTGOMERY', 'MONTOUR', 'McKEAN', 'PERRY',\
+	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTOUR', 'McKEAN', 'PERRY',\
 	'PHILADELPHIA', 'PIKE', 'POTTER', 'SCHUYLKILL', 'SNYDER', 'SOMERSET', 'SULLIVAN',\
 	'SUSQUEHANNA', 'UNION', 'WARREN', 'WASHINGTON', 'WYOMING', 'YORK']
 lr = 1e-3 if stochasticGD else 1e-4
-interceptByCounty = False 
 
 # define model and initial parameters
 predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller',\
@@ -68,12 +67,14 @@ predictorMetaData = {'Party Code': {'len': 2, 'names': ['Registered Dem', 'Regis
 					 'County Population Density': {'len': 1, 'names': ['County Population Density']},
 					 'County Income': {'len': 1, 'names': ['County Income']}}
 
-if interceptByCounty:
-	parameterValues = [0]*(len(countiesToUse) + np.sum([predictorMetaData[i]['len'] for i in predictors]))
-	coefficientNames = countiesToUse + [p for i in predictors for p in predictorMetaData[i]['names']]
-else: 
-	parameterValues = [0]*(1 + np.sum([predictorMetaData[i]['len'] for i in predictors]))
-	coefficientNames = ['Intercept'] + [p for i in predictors for p in predictorMetaData[i]['names']]
+# neural net parameters 
+numHiddenUnits = 10
+inputDimension = (1 + np.sum([predictorMetaData[i]['len'] for i in predictors]))
+parameters = {}
+parameters['b2'] = np.zeros(shape = (1, 1))
+parameters['W2'] = np.random.uniform(low = -0.1, high = 0.1, size = (numHiddenUnits, 1))
+parameters['b1'] = np.zeros(shape = (numHiddenUnits, 1))
+parameters['W1'] = np.random.uniform(low = -0.1, high = 0.1, size = (inputDimension, numHiddenUnits))
 
 # read in datasets
 electionResults = util.readElectionResults('../Statewide/20161108__pa__general__precinct.csv',
@@ -114,14 +115,14 @@ else:
 # get test set clinton proportion var
 if not weakLabels and test:
 	clintonVoteMeanTrain, clintonPropSumSqTrain, totalVotesTrain = \
-		util.computeTestSetStats(allData, parameterValues, countyTrain) 
+		util.computeTestSetStats(allData, parameters, countyTrain) 
 	clintonVoteMeanTest, clintonPropSumSqTest, totalVotesTest = \
-		util.computeTestSetStats(allData, parameterValues, countyTest) 
+		util.computeTestSetStats(allData, parameters, countyTest) 
 elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
-numIterations = 10000 if stochasticGD else 200
+numIterations = 10000 if stochasticGD else 20
 isFirst = True 
 if stochasticGD:
 	for i in range(numIterations):
@@ -132,12 +133,12 @@ if stochasticGD:
 
 		# make periodic updates
 		if i % 100 == 0:
-			util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
+			util.printProgress_nn(allData, parameters, i, True)
 			if not weakLabels and test:
-				util.evaluateTestSet(allData, parameterValues, countyTrain, \
-					clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
-				util.evaluateTestSet(allData, parameterValues, countyTest, \
-					clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
+				util.evaluateTestSet(allData, parameters, countyTrain, \
+					clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst, True)
+				util.evaluateTestSet(allData, parameters, countyTest, \
+					clintonPropSumSqTest, totalVotesTest, 'Test', isFirst, True)
 				isFirst = False 
 			elif weakLabels and test:
 				if i % 100 == 0:
@@ -179,71 +180,77 @@ if stochasticGD:
 else: 
 	for i in range(numIterations):
 
-		# report current likelihood
-		util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
-				
 		# do the evaluation on the test set -- either weak labels or holdout precincts
 		if not weakLabels and test:
-			util.evaluateTestSet(allData, parameterValues, countyTrain, \
-				clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
-			util.evaluateTestSet(allData, parameterValues, countyTest, \
-				clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
+			util.evaluateTestSet(allData, parameters, countyTrain, \
+				clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst, True)
+			util.evaluateTestSet(allData, parameters, countyTest, \
+				clintonPropSumSqTest, totalVotesTest, 'Test', isFirst, True)
 			isFirst = False 
 		elif weakLabels and test:
 			if i in [0, 1, 5, 10, 19]:
 				util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary, i)
 
+		util.printProgress_nn(allData, parameters, i, True) # approx likelihood
 		# iterate through counties
 		for county in countyTrain:
+			# report current likelihood
 			for precinct in allData[county].keys():
 
 				# in the weak labels case, exclude any training counties that we want to test on
-				skip = False
-				if weakLabels:
-					if county in weakLabelDictionary.keys():
-						for item in weakLabelDictionary[county]:
-							if item['Precinct Name'] == precinct:
-								skip = True
-								break
-				if skip:
-					continue 
-
+				# skip = False
+				# if weakLabels:
+				# 	if county in weakLabelDictionary.keys():
+				# 		for item in weakLabelDictionary[county]:
+				# 			if item['Precinct Name'] == precinct:
+				# 				skip = True
+				# 				break
+				# if skip:
+				# 	continue 
+				
 				# pull data for gradient 
 				designMatrix = allData[county][precinct]['Design Matrix']
 				clintonVotes = allData[county][precinct]['Clinton Votes']
 				trumpVotes = allData[county][precinct]['Trump Votes']
-				probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
+
+				hidden = util.sigmoid(designMatrix.dot(parameters['W1']) + np.transpose(parameters['b1']))
+				final = hidden.dot(parameters['W2']) + parameters['b2']
+				probabilities = np.array(util.sigmoid(final))
 				mu = np.sum(probabilities)
 				sigmaSq = np.sum(probabilities*(1-probabilities))
 
+				if sigmaSq == 0:
+					continue
+
+
 				d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
-				grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
-						axis = 0)/sigmaSq
+				
+				# get the gradient with respect to the p_i
+				pGrad = -(1-2*probabilities)/(2*sigmaSq) + (1-2*probabilities)/\
+					(2*sigmaSq**2)*(d-mu)**2+1/sigmaSq*(d-mu)
 
-				# components of the gradients 
-				temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
-				#grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
-				grad2a = np.sum((np.array(designMatrix) * \
-					np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-						axis = 0)/2/sigmaSq
+				# get gradients
+				gradb2 = np.sum(pGrad*probabilities*(1-probabilities)) 
+				gradW2 = hidden.T.dot(pGrad*probabilities*(1-probabilities))
+				hiddenGrad = np.outer(pGrad*probabilities*(1-probabilities), parameters['W2'])
+				gradb1 = np.sum(np.multiply(hiddenGrad, np.multiply(hidden, 1-hidden)), axis = 0).T
+				gradW1 = designMatrix.T.dot(np.multiply(hiddenGrad, np.multiply(hidden, 1-hidden)))
 
-				grad2b = np.sum((np.array(designMatrix) * \
-					np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-						axis = 0)/2/sigmaSq**2
-
-				# compute the gradient 
-				estGrad = grad1 + grad2a + grad2b
-				if regularize:
-					estGrad -= lam*np.array(parameterValues)
+				# regularization
+				if regularize: 
+					gradb2 -= lam*parameters['b2']
+					gradW2 -= lam*parameters['W2']
+					gradb1 -= lam*parameters['b1']
+					gradW1 -= lam*parameters['W1']
 
 				# stability checks 
-				if np.isnan(estGrad).any():
+				if np.isnan(gradb2).any() or np.isnan(gradW2).any() or \
+					np.isnan(gradb1).any() or np.isnan(gradW1).any():
 					continue
-				if np.dot(estGrad, estGrad) > 1e5:
-					estGrad = estGrad/np.sqrt(np.dot(estGrad, estGrad))*1e-5
-				#	continue 
-				parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
+#				if np.dot(estGrad, estGrad) > 1e5:
+#					estGrad = estGrad/np.sqrt(np.dot(estGrad, estGrad))*1e-5
 
-		#		grad += estGrad
-
-		#parameterValues = parameterValues + lr * estGrad
+				parameters['b2'] = parameters['b2'] + lr/np.sqrt(1+i)*gradb2
+				parameters['W2'] = parameters['W2'] + lr/np.sqrt(1+i)*gradW2
+				parameters['b1'] = parameters['b1'] + lr/np.sqrt(1+i)*gradb1
+				parameters['W1'] = parameters['W1'] + lr/np.sqrt(1+i)*gradW1
