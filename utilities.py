@@ -9,6 +9,8 @@ from sklearn import metrics
 import pickle
 import matplotlib.pyplot as plt
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 # read in election results
 def readElectionResults(path, colNamesPath):
 	electionResults = pd.read_csv(path, header = None)
@@ -166,7 +168,20 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		trumpCountyVotes['Municipality Breakdown Name 2'] =  trumpCountyVotes['Municipality Breakdown Name 2'].apply(pd.to_numeric, errors='coerce')
 		clintonCountyVotes['Municipality Breakdown Name 1'] =  clintonCountyVotes['Municipality Breakdown Name 1'].apply(pd.to_numeric, errors='coerce')
 		clintonCountyVotes['Municipality Breakdown Name 2'] =  clintonCountyVotes['Municipality Breakdown Name 2'].apply(pd.to_numeric, errors='coerce')
-    
+        
+		if (county == "MONTGOMERY"):        
+			index = trumpCountyVotes.loc[[125897,125907,126048,126055]].index
+			trumpCountyVotes = trumpCountyVotes.drop(index)   
+
+			index = clintonCountyVotes.loc[[125468,125478,125619,125626]].index
+			clintonCountyVotes = clintonCountyVotes.drop(index)
+		if (county == "DELAWARE"):
+			index = trumpCountyVotes.loc[[77074]].index
+			trumpCountyVotes = trumpCountyVotes.drop(index)   
+
+			index = clintonCountyVotes.loc[[76645]].index
+			clintonCountyVotes = clintonCountyVotes.drop(index)
+
 		# pull the precinct mapping
 		zoneCodes = pd.read_csv('../Statewide/' + countyFile.replace('FVE', 'Zone Codes'), 
 			sep = '\t', header = None)

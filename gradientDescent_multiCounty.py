@@ -16,7 +16,7 @@ from pdb import set_trace as t
 stochasticGD = False
 debug = False
 test = True
-loadData = True # by default, generate data from scratch
+loadData = True # by default, load data
 newDesignMatrices = False # by default don't regenerate design matrces
 regularize = False 
 weakLabels = False 
@@ -42,9 +42,9 @@ if debug:
 else:
 	countiesToUse = ['ADAMS', 'ALLEGHENY', 'ARMSTRONG', 'BEAVER', 'BEDFORD',\
 	'BLAIR', 'BRADFORD', 'BUTLER', 'CAMBRIA', 'CAMERON', 'CARBON', 'CHESTER',\
-	'CLEARFIELD', 'CLINTON', 'COLUMBIA', 'CRAWFORD', 'ERIE', 'FOREST', 'FRANKLIN',\
+	'CLEARFIELD', 'CLINTON', 'COLUMBIA', 'CRAWFORD', 'DELAWARE', 'ERIE', 'FOREST', 'FRANKLIN',\
 	'GREENE', 'INDIANA', 'JEFFERSON', 'JUNIATA', 'LAWRENCE', 'LEBANON', 'LUZERNE',\
-	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTOUR', 'McKEAN', 'PERRY',\
+	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTGOMERY', 'MONTOUR', 'McKEAN', 'PERRY',\
 	'PHILADELPHIA', 'PIKE', 'POTTER', 'SCHUYLKILL', 'SNYDER', 'SOMERSET', 'SULLIVAN',\
 	'SUSQUEHANNA', 'UNION', 'WARREN', 'WASHINGTON', 'WYOMING', 'YORK']
 lr = 1e-3 if stochasticGD else 1e-4
