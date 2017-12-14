@@ -32,7 +32,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 1.0 
+	lam = 0.00001 
 if 'weakLabels' in sys.argv:
 	weakLabels = True
 
@@ -47,11 +47,11 @@ else:
 	'LYCOMING', 'MERCER', 'MIFFLIN', 'MONROE', 'MONTOUR', 'McKEAN', 'PERRY',\
 	'PHILADELPHIA', 'PIKE', 'POTTER', 'SCHUYLKILL', 'SNYDER', 'SOMERSET', 'SULLIVAN',\
 	'SUSQUEHANNA', 'UNION', 'WARREN', 'WASHINGTON', 'WYOMING', 'YORK']
-lr = 1e-3 if stochasticGD else 1e-4
+lr = 1e-2 if stochasticGD else 1e-4
 interceptByCounty = False 
 
 # define model and initial parameters
-predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller',\
+predictors = ['Party Code', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller',\
 	'County White Percent', 'County Black Percent', 'County Latino Percent', 'County College Educated Percent',\
 	'County Population Density', 'County Income'] 
 predictorMetaData = {'Party Code': {'len': 2, 'names': ['Registered Dem', 'Registered Rep']}, 
@@ -121,129 +121,63 @@ elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
-numIterations = 10000 if stochasticGD else 200
+numIterations = 10000 if stochasticGD else 20
+
 isFirst = True 
-if stochasticGD:
-	for i in range(numIterations):
+for i in range(numIterations):
+	print(i)
+	if i == numIterations - 1:
+		util.evaluatePrimaryVoters(allData, parameterValues, countyTest, i) 
 
-		# choose a random precinct from a random county
-		county = random.choice(countyTrain)
-		precinct = random.choice(allData[county].keys())
+	# iterate through counties
+	for county in countyTrain:
 
-		# make periodic updates
-		if i % 100 == 0:
-			util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
-			if not weakLabels and test:
-				util.evaluateTestSet(allData, parameterValues, countyTrain, \
-					clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
-				util.evaluateTestSet(allData, parameterValues, countyTest, \
-					clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
-				isFirst = False 
-			elif weakLabels and test:
-				if i % 100 == 0:
-					util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary, i)
+		for precinct in allData[county].keys():
 
-		designMatrix = allData[county][precinct]['Design Matrix']
-		clintonVotes = allData[county][precinct]['Clinton Votes']
-		trumpVotes = allData[county][precinct]['Trump Votes']
-		probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
-		mu = np.sum(probabilities)
-		sigmaSq = np.sum(probabilities*(1-probabilities))
+			# in the weak labels case, exclude any training counties that we want to test on
+			skip = False
+			if weakLabels:
+				if county in weakLabelDictionary.keys():
+					for item in weakLabelDictionary[county]:
+						if item['Precinct Name'] == precinct:
+							skip = True
+							break
+			if skip:
+				continue 
 
-		d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
-		grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
-				axis = 0)/sigmaSq
+			# pull data for gradient 
+			des = allData[county][precinct]['Design Matrix']
+			designMatrix = np.delete(des, [3,4], axis = 1)
 
-		# components of the gradients 
-		temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
-		grad2a = np.sum((np.array(designMatrix) * \
-			np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-				axis = 0)/2/sigmaSq
+			clintonVotes = allData[county][precinct]['Clinton Votes']
+			trumpVotes = allData[county][precinct]['Trump Votes']
+			probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
+			mu = np.sum(probabilities)
+			sigmaSq = np.sum(probabilities*(1-probabilities))
 
-		grad2b = np.sum((np.array(designMatrix) * \
-			np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-				axis = 0)/2/sigmaSq**2
+			d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
+			grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
+					axis = 0)/sigmaSq
 
-		# compute the gradient 
-		estGrad = grad1 + grad2a + grad2b
-		if regularize:
-			estGrad -= lam*np.array(parameterValues)
+			# components of the gradients 
+			temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
+			#grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
+			grad2a = np.sum((np.array(designMatrix) * \
+				np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
+					axis = 0)/2/sigmaSq
 
-		# stability checks 
-		if np.isnan(estGrad).any():
-			continue
-		if np.dot(estGrad, estGrad) > 1e5:
-			t()
-			continue 
-		parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad
-else: 
-	for i in range(numIterations):
+			grad2b = np.sum((np.array(designMatrix) * \
+				np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
+					axis = 0)/2/sigmaSq**2
 
-		# report current likelihood
-		util.printProgress(allData, parameterValues, i, coefficientNames, True) # approx likelihood
-				
-		# do the evaluation on the test set -- either weak labels or holdout precincts
-		if not weakLabels and test:
-			util.evaluateTestSet(allData, parameterValues, countyTrain, \
-				clintonPropSumSqTrain, totalVotesTrain, 'Train', isFirst)
-			util.evaluateTestSet(allData, parameterValues, countyTest, \
-				clintonPropSumSqTest, totalVotesTest, 'Test', isFirst)
-			isFirst = False 
-		elif weakLabels and test:
-			if i in [0, 1, 5, 10, 19]:
-				util.evaluteWeakLabels(allData, parameterValues, weakLabelDictionary, i)
+			# compute the gradient 
+			estGrad = grad1 + grad2a + grad2b
+			if regularize:
+				estGrad -= lam*np.array(parameterValues)
 
-		# iterate through counties
-		for county in countyTrain:
-			for precinct in allData[county].keys():
-
-				# in the weak labels case, exclude any training counties that we want to test on
-				skip = False
-				if weakLabels:
-					if county in weakLabelDictionary.keys():
-						for item in weakLabelDictionary[county]:
-							if item['Precinct Name'] == precinct:
-								skip = True
-								break
-				if skip:
-					continue 
-
-				# pull data for gradient 
-				designMatrix = allData[county][precinct]['Design Matrix']
-				clintonVotes = allData[county][precinct]['Clinton Votes']
-				trumpVotes = allData[county][precinct]['Trump Votes']
-				probabilities = np.array((1/(1 + np.exp(-designMatrix.dot(parameterValues)))).tolist()[0])
-				mu = np.sum(probabilities)
-				sigmaSq = np.sum(probabilities*(1-probabilities))
-
-				d = clintonVotes/float(trumpVotes + clintonVotes) * len(probabilities)
-				grad1 = np.sum((np.array(designMatrix) * np.expand_dims((d-mu)*probabilities*(1-probabilities), 1)), \
-						axis = 0)/sigmaSq
-
-				# components of the gradients 
-				temp = np.expand_dims(1/2.*((d-mu)**2/sigmaSq**2 - 1/sigmaSq)*(2*probabilities-1)*probabilities**2, axis = 0)
-				#grad2 = np.sum((np.array(designMatrix)*np.transpose(temp)), axis = 0)
-				grad2a = np.sum((np.array(designMatrix) * \
-					np.expand_dims(probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-						axis = 0)/2/sigmaSq
-
-				grad2b = np.sum((np.array(designMatrix) * \
-					np.expand_dims(-(d-mu)**2*probabilities*(1-probabilities)*(2*probabilities - 1), 1)), \
-						axis = 0)/2/sigmaSq**2
-
-				# compute the gradient 
-				estGrad = grad1 + grad2a + grad2b
-				if regularize:
-					estGrad -= lam*np.array(parameterValues)
-
-				# stability checks 
-				if np.isnan(estGrad).any():
-					continue
-				if np.dot(estGrad, estGrad) > 1e5:
-					estGrad = estGrad/np.sqrt(np.dot(estGrad, estGrad))*1e-5
-				#	continue 
-				parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
-
-		#		grad += estGrad
-
-		#parameterValues = parameterValues + lr * estGrad
+			# stability checks 
+			if np.isnan(estGrad).any():
+				continue
+			if np.dot(estGrad, estGrad) > 1e5:
+				continue 
+			parameterValues = parameterValues + lr/np.sqrt(1 + i) * estGrad#(grad1 + grad2a + grad2b) #lr/np.sqrt(1 + i)
