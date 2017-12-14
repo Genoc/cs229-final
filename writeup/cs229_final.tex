@@ -136,6 +136,9 @@ Stanford University\\
 % \end{abstract}
 
 %%%%%%%%% BODY TEXT
+
+\section{Abstract}
+
 \section{Introduction}
 Political organizations seek to build voting models to explain voter preferences, as this information is vital for voter targeting. In the US, voting data indicating how many votes every candidate receives is available at the precinct level, but the most granular data – who voted for which candidate – is private. As a result, political groups are forced to rely on polling data to perform analysis at the individual voter level. Polling data can not only be unreliable but it is also incomplete, as voters are not obligated to express their true preferences and the majority of voters will not participate in polls. We develop individual voter models based off of publicly available aggregated voting data.
 
@@ -153,6 +156,12 @@ Our paper makes two key contributions:
 \begin{comment}
 More generally, we believe that our development of the Poisson binomial GLMs will be applicable to other problems where the goal is also to build a model explaining individual behavior given aggregate-level performance and individual-level features. Our work can be extended to support Poisson multionomial GLMs as well to model problems where individuals have more than two choices that are then aggregated.
 \end{comment}
+
+\section{Related Work}
+Theoretical work on the Poisson Binomial distribution has focused on computationally tractable ways to estimate its distribution function, often via approximations to other distributions 
+\cite{EHM19917, roos1999, chen1974}. Prior research \cite{HONG201341} has identified a closed-form expression for the CDF, which relies on the discrete Fourier Transform. This technique is leveraged in the \texttt{poibin} package \cite{PoibiGithub}, which we use for this project. The application of the Poisson Binomial distribution to the generalized linear model setting has been discussed by Chen and Liu \cite{Poibi}, who propose it for hypothesis testing on the parameter vector for a logistic regression model. But we find no references in the literature to our appraoch: building generalized linear models for Poisson Binomial-distributed sums. 
+
+There is a richer body of literature on our chosen problem: modeling individual voter preferences in elections. In applied papers, researchers make use of a variety of tools to obtain labeled datasets: voter surveys \cite{dubrow2007choosing}, exit polls \cite{carsey1995contextual}, or modeling whether an individual voted (which is public record), rather than her choice of candidate \cite{rusch2013influencing}. Armed with datasets in which both features and outcomes are 
 
 \section{Dataset}
 
@@ -185,7 +194,7 @@ where $F_k$ is the set of all configurations of $T$ votes in which a total of $D
 
 $$\ell(\theta) = \prod_k \ell_k(\theta)$$
 
-In order to determine the optimal parameters $\theta$, we need to maximize this likelihood over the Pennsylvania precincts. Note that the Poisson binomial likelihood involves sums over all possible configurations of votes -- e.g. if Clinton received 200 out of 500 total votes in a precinct, then the likelihood involves a sum over $500 \choose 200$ configurations. Although we can directly estimate the likelihood well using discrete Fourier transforms (as the \texttt{poibin} package does\cite{PoibiGithub}), computing the gradient is computationally intractable.
+In order to determine the optimal parameters $\theta$, we need to maximize this likelihood over the Pennsylvania precincts. Note that the Poisson binomial likelihood involves sums over all possible configurations of votes -- e.g. if Clinton received 200 out of 500 total votes in a precinct, then the likelihood involves a sum over $500 \choose 200$ configurations. Although we can directly estimate the likelihood using the \texttt{poibin} package, calculating the gradient is computationally infeasible.
 
 \subsection{Calculating the Gradient}
 
@@ -208,7 +217,25 @@ where irrelevant constants have been dropped, $\mu_k =  \sum_{i} p_{k, i}(1-p_{k
 
 % \subsection{Evaluation Metrics}
 
-\section{Preliminary Results}
+\subsection{Neural Net} 
+As one potential improvement to our modeling, we considered using a neural net -- rather than a simple logistic regression -- to relate individual-level covariates to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
+\begin{align*}
+h_{k, i} &= \sigma\left(W_1 x_{k, i} + b_1 \right) \\
+p_{k, i} &= \sigma\left(W_2 h_{k, i} + b_2 \right) 
+\end{align*}
+where $x_{k, i}$ are the covariates for the individual. Denoting $\mu_k = \sum_{i = 1}^{n_k} p_{k, i}$ and $\sigma_k^2 = \sum_{i = 1}^{n_k} p_{k, i} (1 - p_{k, i})$ where $n_k$ is the number of votes cast in precinct $k$, we see: 
+
+\begin{align*}
+\frac{\partial \ell_k}{\partial p_{k, j}} &= - \frac{1 - 2p_{k, j}}{2 \sigma_k^2} + \frac{1 - 2p_{k, j}}{2 \sigma_k^4} (d_k - \mu_k)^2  + \frac{1}{\sigma_k^2} \left(d_k - \mu_k \right) \\
+\frac{\ell_k}{\partial b_2} &= \sum_{j = 1}^{n_k} \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j}) \\
+\frac{\ell_k}{\partial W_2} &= \left\{ h_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} \\
+\frac{\ell_k}{\partial b_1} &= \sum_{j = 1}^{n_k} \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j \\
+\frac{\ell_k}{\partial W_1} &= \left\{ x_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j
+\end{align*}
+where $\{x_j\}_j$ denotes a column vector consisting of the entries $x_j$ and $\circ$ denotes a Hadamard product. We implement these gradients and train our new neural net
+
+
+\section{Results}
 
 Using stochastic gradient ascent, we fit a simple model to the four counties where we predict the probability to vote for Clinton given county, party registration, primary participation, gender, and age. Computing the log-likelihood every 25 iterations, we see a modest improvement over the first 400 iterations (after which the log-likelihood plateaus): 
 \begin{figure}[H]
@@ -243,16 +270,10 @@ Once we are able to train on more data, we will split our data into training and
 
 Once we begin training our model on only a training set and evaluating it on a holdout, we will experiment with adding regularization to see if it improves performance. In addition to gradient descent, we would also like to explore alternative methods for maximizing the log likelihood such as numerical gradients and expectation maximization.
 
-\section{Contributions}
-Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the progress made so far for the milestone and derived the CLT proof, while Nitin wrote up the milestone report as well as additional sections that will be useful for the final project report and focused on establishing better data mappings between our two datasets.
-
-
-\newpage
 \section*{Appendix: Lyapunov CLT Proof}
 
-Define $d_k = \sum_{i = 1}^n d_{k, i}$ to be the number of Democratic votes in precinct $k$, where $d_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. We know that $d_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define:
-\[ s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i}) \] 
-We check the Lyapunov CLT condition for the fourth moment: 
+Define $d_k = \sum_{i = 1}^n d_{k, i}$ to be the number of Democratic votes in precinct $k$, where $d_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. $d_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define $s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i})$. 
+We check the Lyapunov CLT \cite{billingsley1995probability} condition for the fourth moment: 
 \begin{align*}
 \lim_{n \to \infty} \frac{1}{s_k^4} \sum_{i = 1}^n E \left( (d_{k, i} - p_{k, i})^4 \right) &= \lim_{n \to \infty} \frac{\sum_{i = 1}^n p_{k, i}(1-p_{k, i}) \left( 3p_{k, i}^2 - 3p_{k, i} + 1 \right)}{\left(\sum_{i = 1}^n p_{k, i} \left( 1- p_{k, i} \right) \right)^2} \stackrel{?} = 0 
 \end{align*}
@@ -263,6 +284,11 @@ The Lypaunov CLT now tells us that:
 \[ \frac{d_k - \sum_{i = 1}^{n} p_{k, i} }{s_k} \stackrel{d} \longrightarrow N(0, 1) \] 
 giving us the desired asymptotic normality. 
 
+\newpage 
+\section{Contributions}
+Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the progress made so far for the milestone and derived the CLT proof, while Nitin wrote up the milestone report as well as additional sections that will be useful for the final project report and focused on establishing better data mappings between our two datasets. 
+
+\newpage 
 {\small
 \bibliographystyle{ieee}
 \bibliography{csbib}

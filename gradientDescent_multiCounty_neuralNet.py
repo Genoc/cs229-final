@@ -32,7 +32,7 @@ if 'newDesignMatrices' in sys.argv:
 	newDesignMatrices = True
 if 'regularize' in sys.argv:
 	regularize = True 
-	lam = 0.25
+	lam = 0.7
 if 'weakLabels' in sys.argv:
 	weakLabels = True
 
