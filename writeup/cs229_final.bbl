@@ -1,0 +1,90 @@
+\begin{thebibliography}{10}\itemsep=-1pt
+
+\bibitem{billingsley1995probability}
+P.~Billingsley.
+\newblock {\em Probability and Measure}.
+\newblock Wiley Series in Probability and Statistics. Wiley, 1995.
+
+\bibitem{carsey1995contextual}
+T.~M. Carsey.
+\newblock The contextual effects of race on white voter behavior: The 1989 new
+  york city mayoral election.
+\newblock {\em The Journal of Politics}, 57(1):221--228, 1995.
+
+\bibitem{chen1974}
+L.~H.~Y. Chen.
+\newblock On the convergence of poisson binomial to poisson distributions.
+\newblock {\em Ann. Probab.}, 2(1):178--180, 02 1974.
+
+\bibitem{Poibi}
+S.~X. Chen and J.~S. Liu.
+\newblock Statistical applications of the poisson-binomial and conditional
+  bernoulli distributions.
+\newblock {\em Statistica Sinica}, 7(4):875--892, 1997.
+
+\bibitem{538}
+K.~Dropp.
+\newblock How we determined our 2016 likely voter model.
+\newblock
+  \url{https://morningconsult.com/2016/09/11/morning-consult-2016-likely-voter-model/},
+  2016.
+
+\bibitem{dubrow2007choosing}
+J.~K. Dubrow.
+\newblock Choosing among discrete choice models for voting behavior.
+\newblock 2007.
+
+\bibitem{EHM19917}
+W.~Ehm.
+\newblock Binomial approximation to the poisson binomial distribution.
+\newblock {\em Statistics \& Probability Letters}, 11(1):7 -- 16, 1991.
+
+\bibitem{HONG201341}
+Y.~Hong.
+\newblock On computing the distribution function for the poisson binomial
+  distribution.
+\newblock {\em Computational Statistics \& Data Analysis}, 59(Supplement C):41
+  -- 51, 2013.
+
+\bibitem{PAVoterFile}
+C.~of~Pennsylvania.
+\newblock Pennsylvania full voter export.
+\newblock
+  \url{https://www.pavoterservices.pa.gov/Pages/PurchasePAFULLVoterExport.aspx},
+  2017.
+
+\bibitem{OpenElections}
+OpenElections.
+\newblock Openelections data for pennsylvania.
+\newblock \url{https://github.com/openelections/openelections-data-pa}, 2017.
+
+\bibitem{roos1999}
+B.~Roos.
+\newblock Asymptotics and sharp bounds in the poisson approximation to the
+  poisson-binomial distribution.
+\newblock {\em Bernoulli}, 5(6):1021--1034, 12 1999.
+
+\bibitem{rusch2013influencing}
+T.~Rusch, I.~Lee, K.~Hornik, W.~Jank, and A.~Zeileis.
+\newblock Influencing elections with statistics: Targeting voters with logistic
+  regression trees.
+\newblock {\em The Annals of Applied Statistics}, pages 1612--1639, 2013.
+
+\bibitem{PoibiGithub}
+M.~J. Straka.
+\newblock Poisson binomial probability distribution for python.
+\newblock \url{https://github.com/tsakim/poibin}, 2016.
+
+\bibitem{NYT}
+N.~Y. Times.
+\newblock Pennsylvania presidential race results.
+\newblock
+  \url{https://www.nytimes.com/elections/results/pennsylvania-president-clinton-trump},
+  2017.
+
+\bibitem{LyapunovCondition}
+E.~W. Weisstein.
+\newblock Lyapunov condition.
+\newblock \url{http://mathworld.wolfram.com/LyapunovCondition.html}.
+
+\end{thebibliography}

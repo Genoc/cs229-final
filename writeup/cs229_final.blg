@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: cs229_final.aux
+The style file: ieee.bst
+Database file #1: csbib.bib
+Warning--empty journal in dubrow2007choosing
+You've used 15 entries,
+            2120 wiz_defined-function locations,
+            595 strings with 6011 characters,
+and the built_in function-call counts, 4055 in all, are:
+= -- 406
+> -- 132
+< -- 1
++ -- 56
+- -- 40
+* -- 231
+:= -- 679
+add.period$ -- 46
+call.type$ -- 15
+change.case$ -- 64
+chr.to.int$ -- 0
+cite$ -- 16
+duplicate$ -- 152
+empty$ -- 370
+format.name$ -- 40
+if$ -- 863
+int.to.chr$ -- 0
+int.to.str$ -- 15
+missing$ -- 10
+newline$ -- 78
+num.names$ -- 30
+pop$ -- 81
+preamble$ -- 1
+purify$ -- 50
+quote$ -- 0
+skip$ -- 120
+stack$ -- 0
+substring$ -- 257
+swap$ -- 25
+text.length$ -- 1
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 58
+warning$ -- 1
+while$ -- 42
+width$ -- 17
+write$ -- 158
+(There was 1 warning)
