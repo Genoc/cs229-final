@@ -93,7 +93,7 @@ usableCountyFiles = ['ADAMS FVE 20171016.txt', 'ALLEGHENY FVE 20171016.txt', 'AR
 countyList = [x.replace(' FVE 20171016.txt','') for x in countyFiles]
 
 # split into training and testing counties
-np.random.seed(13)
+np.random.seed(14)
 if not test:
 	countyTrain = countyList
 else:
@@ -119,8 +119,6 @@ if not weakLabels and test:
 		util.computeTestSetStats(allData, parameterValues, countyTest) 
 elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
-
-print len(allData.keys())
 
 # training loop
 numIterations = 10000 if stochasticGD else 50
