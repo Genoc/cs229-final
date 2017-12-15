@@ -242,7 +242,7 @@ where irrelevant constants have been dropped, $\mu_k =  \sum_{i} p_{k, i}(1-p_{k
 \end{align*}
 
 \subsection{Neural Network} 
-As one potential improvement over the logistic regression model, we also looked at using a neural network rather than a simple logistic regression to relate individual-level features to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
+As one potential improvement over the logistic regression model, we also looked at using a neural network rather than a logistic regression to relate individual-level features to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
 \begin{align*}
 h_{k, i} &= \sigma\left(W_1 x_{k, i} + b_1 \right) \\
 p_{k, i} &= \sigma\left(W_2 h_{k, i} + b_2 \right) 
@@ -264,7 +264,7 @@ For our experiments, we construct a neural network with 1 hidden layer with 10 h
 
 Our goal is to obtain an accurate representation of the probability of any given voter to vote for Clinton. We train our model using gradient descent where the log-likelihood and gradients for our runs are as defined in sections 5.2 and 5.3. For each training epoch, we train our model on every precinct in the training set, updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence.
 
-We initialized all of our parameters to 0, which meant that at the beginning we were assuming that every voter had a 50\% chance of voting for Clinton. For both the model using basic logistic regression and the model using a neural network, we experimented with regularization but did not find it necessary as we were not having issues overfitting to the training set and adding regularization did not noticeably impact our model performance on our test set. 
+We initialize all of our parameters to 0, so at the beginning of our training every every voter has a 50\% chance of voting for Clinton. For both the model using basic logistic regression and the model using a neural network, we experimented with regularization but did not find it necessary as we were not having issues overfitting to the training set and adding regularization did not noticeably impact our model performance on our test set. 
 
 One specific issue we ran into when running gradient descent was extremely large or small gradients (that often returned as $NaN$ due to underflow issues). We found the best way to handle these gradients was to ignore the counties with extremely small gradients as they would not have changed the likelihood at all and to cap large gradients if they were beyond a certain magnitude.
 
