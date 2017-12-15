@@ -170,10 +170,10 @@ Lastly, the problem of ``learning individual-level associations from aggregate d
 
 We combined two disparate datasets for our project. \\
 
-\noindent \textbf{Pennsylvania precinct-level election results} \\
-Our dataset of Pennsylvania precinct-level election results contains the total number of votes received by each candidate by precinct in the 2016 presidential election. We obtained this dataset from OpenElections \cite{OpenElections}.
+Our dataset of \textbf{Pennsylvania precinct-level election results} contains the total number of votes received by each candidate by precinct in the 2016 presidential election. We obtained this dataset from OpenElections \cite{OpenElections}.
 
-\begin{table}[H]
+\begin{table*}
+\caption{Pennsylvania precinct-level election results}
 \begin{center}
 \begin{tabular}{ |l|l|l|l| } 
 \hline
@@ -187,11 +187,11 @@ MONTGOMERY & ABINGTON W1 D1 & DONALD TRUMP & 388  \\
 \hline
 \end{tabular}
 \end{center}
-\end{table}
+\end{table*}
 
-\noindent \textbf{Pennsylvania voter file} \\
-Our other dataset is the Pennsylvania voter file which we obtained directly from the Pennsylvania Department of State \cite{PAVoterFile}. This dataset contains a row for every registered voter in Pennsylvania as well as their party registration, limited demographic information (age, gender), and voting participation over a set of recent primaries and general elections.
-\begin{table}[H]
+\begin{table*}
+\label{tab:datasets}
+\caption{Pennsylvania voter file}
 \begin{center}
 \begin{tabular}{ |l|l|l|l|l|l| } 
 \hline
@@ -203,7 +203,9 @@ MONTGOMERY & ABINGTON 1-1 & Jane Doe & Female & 27 & ... \\
 \hline
 \end{tabular}
 \end{center}
-\end{table}
+\end{table*}
+
+Our other dataset is the \textbf{Pennsylvania voter file} which we obtained directly from the Pennsylvania Department of State \cite{PAVoterFile}. This dataset contains a row for every registered voter in Pennsylvania as well as their party registration, limited demographic information (age, gender), and voting participation over a set of recent primaries and general elections.
 
 \subsection{Dataset Preparation and Validation}
 
@@ -333,7 +335,7 @@ Figure \ref{fig:primaryVoters19} has the expected bimodal distribution, indicati
 
 \subsection{Final model trained on all data}
 
-After we were convinced of the accuracy of the model, we then trained it using our entire dataset to build our final voter model. Our model coefficients are available in table~\ref{table:coeff}. Note that positive values correspond to a higher probability of voting for Clinton.
+After we were convinced of the accuracy of the model, we then trained it using our entire dataset to build our final voter model. Our model coefficients are available in the below table. Note that positive values correspond to a higher probability of voting for Clinton.
 
 \begin{table}[H]
 \centering
