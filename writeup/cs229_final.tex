@@ -1,5 +1,5 @@
 \documentclass[10pt, letterpaper]{article}
-%\documentclass[10pt,twocolumn,letterpaper]{article}
+% \documentclass[10pt,twocolumn,letterpaper]{article}
 % \usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage{cvpr}
 \usepackage{times}
@@ -158,7 +158,7 @@ Our paper makes two key contributions:
 Theoretical work on the Poisson Binomial distribution has focused on computationally tractable ways to estimate its distribution function, often via approximations to other distributions 
 \cite{EHM19917, roos1999, chen1974}. Prior research \cite{HONG201341} has identified a closed-form expression for the CDF, which relies on the discrete Fourier Transform. This technique is leveraged in the \texttt{poibin} package \cite{PoibiGithub}, which we use for this project. The application of the Poisson Binomial distribution to the generalized linear model setting has been discussed by Chen and Liu \cite{Poibi}, who propose it for hypothesis testing on the parameter vector for a logistic regression model. But we find no references in the literature to our approach: building generalized linear models for Poisson Binomial-distributed sums. 
 
-There is a richer body of literature on our chosen problem: modeling voter preferences in elections. This research separates into two primary methodologies. In the first, researchers are interested in the relationship between voter characteristics and their ballot preferences. To obtain labeled datasets, researchers make use of voter surveys \cite{dubrow2007choosing}, exit polls \cite{carsey1995contextual}, or modeling whether an individual voted (which is public record), rather than her choice of candidate \cite{rusch2013influencing}. They then fit models via simple GLMs, like the multinomial probit or multinomial logit model, which ``represent voter choice as a decision among unordered alternatives (parties, candidates) as a function of chooser (voter) and choice (party/candidate) attributes" \cite{DOW2004107}. 
+There is a richer body of literature on our chosen application: modeling voter preferences in elections. This research separates into two primary methodologies. In the first, researchers are interested in the relationship between voter characteristics and their ballot preferences. To obtain labeled datasets, researchers make use of voter surveys \cite{dubrow2007choosing}, exit polls \cite{carsey1995contextual}, or modeling whether an individual voted (which is public record), rather than her choice of candidate \cite{rusch2013influencing}. They then fit models via simple GLMs, like the multinomial probit or multinomial logit model, which ``represent voter choice as a decision among unordered alternatives (parties, candidates) as a function of chooser (voter) and choice (party/candidate) attributes" \cite{DOW2004107}. 
 
 In the second methodology, researchers are interested in the relationship between candidate characteristics or voting methods and vote outcomes. In these studies \cite{miller1998impact, frisina2008ballot, 10.2307/24371899}, researchers frequently use aggregate vote totals from precincts, counties, or states. Relationships are then uncovered by standard regression techniques, like linear mixed models \cite{10.2307/2585758} AAAAADDDSDFSDFSDFSDFSDF . Closely related to this literature is the approach of popular election prognosticators like FiveThirtyEight \cite{538} to model election outcomes using a mix of polling and demographic data. 
 
@@ -166,21 +166,50 @@ In the second methodology, researchers are interested in the relationship betwee
 
 \subsection{Overview}
 
-We use two relevant but disparate datasets for our project.
+We combined two disparate datasets for our project. \\
 
-Our dataset of \textbf{Pennsylvania precinct-level election results} contains the total number of votes received by each candidate by precinct in the 2016 presidential election. We obtained this dataset from OpenElections \cite{OpenElections}.
+\noindent \textbf{Pennsylvania precinct-level election results} \\
+Our dataset of Pennsylvania precinct-level election results contains the total number of votes received by each candidate by precinct in the 2016 presidential election. We obtained this dataset from OpenElections \cite{OpenElections}.
 
-Our other dataset is the \textbf{Pennsylvania voter file} which we obtained directly from the Pennsylvania Department of State \cite{PAVoterFile}. This dataset contains a row for every registered voter in Pennsylvania as well as their party registration, limited demographic information (age, gender), and voting participation over a set of recent primaries and general elections.
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|l|l|l| } 
+\hline
+County Name & Precinct Name & Candidate Name & Number of votes \\
+\hline \hline
+MONTGOMERY & ABINGTON W1 D1 & HILLARY CLINTON & 603  \\
+\hline
+MONTGOMERY & ABINGTON W1 D1 & DONALD TRUMP & 388  \\
+\hline
+... & ...& ... & ...  \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
 
-NITIN TODO - add in figures/tables to show sample rows from each of the files, like we did in the poster.
+\noindent \textbf{Pennsylvania voter file} \\
+Our other dataset is the Pennsylvania voter file which we obtained directly from the Pennsylvania Department of State \cite{PAVoterFile}. This dataset contains a row for every registered voter in Pennsylvania as well as their party registration, limited demographic information (age, gender), and voting participation over a set of recent primaries and general elections.
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{ |l|l|l|l|l|l| } 
+\hline
+County Name & Precinct Name & Voter Name & Gender & Age & Other Attributes \\
+\hline \hline
+MONTGOMERY & ABINGTON 1-1 & Jane Doe & Female & 27 & ... \\
+\hline
+... & ... & ... & ... & ... & ... \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
 
 \subsection{Dataset Preparation and Validation}
 
-Because these files were sourced from two different datasets, we ran into some challenges in cleanly mapping them with each other. There is no shared precinct identifier across the files so we had to review over 9,000 precincts manually to determine the best way to match them between the files. If either the voter file or precinct-level results were corrupted or did not match which each other, we removed the entire county from our dataset.
+Because these files were sourced from two different datasets, we ran into some challenges in cleanly mapping them with each other. In particular, there is no shared precinct identifier across the files - precinct names often did not match between the files as in the above tables, and there was no other common precinct identifier. As a result, we had to review over 9,000 precincts manually to determine the best way to match them between the files. If either the voter file or precinct-level results were corrupted or did not match which each other, we removed the entire county from our dataset.
 
 After our data cleaning, filtering, and mapping, we ended up with a dataset of 48 of Pennsylvania's 67 counties. Together, these counties represent 6,837 precincts and about 4.07 million total votes for Clinton and Trump. This corresponds to about 66\% of voters in Pennsylvania. The sample had a small pro-Clinton bias, with $52.1\%$ of the voters who cast a major-party ballot supporting Clinton in our sample, versus 49.6\% statewide. 
 
-We only model based on the vote counts for Hillary Clinton and Donald Trump because about 96\% of votes went for one of them. As a result, in some precincts the sum of votes for Clinton and Trump did not equal the total votes in the precinct. We examined this further and saw that the sum of Clinton/Trump votes in precincts is not equal to the total number of votes cast in some precincts, but is within 10\% in most cases. To address this, we take the percentage of Clinton/Trump votes cast in a precinct went to Clinton and multiply it by the total number of Clinton/Trump votes in the precinct, and repeat this for Trump. This is our estimate of how many voters in a precinct would have went for Clinton/Trump if these two candidates were the only two options.
+We only model based on the vote counts for Hillary Clinton and Donald Trump because about 96\% of votes went for one of them. We examined this further and saw that the sum of Clinton/Trump votes in some precincts is not equal to the total number of votes cast, but is within 10\% in most cases. To address this, we take the percentage of Clinton/Trump votes cast in a precinct went to Clinton and multiply it by the total number of Clinton/Trump votes in the precinct, and repeat this for Trump. This is our estimate of how many voters in a precinct would have went for Clinton/Trump if these two candidates were the only two options.
 
 \section{Methods}
 
@@ -199,7 +228,7 @@ In order to determine the optimal parameters $\theta$, we need to maximize this 
 
 \subsection{Calculating the Gradient}
 
-To address this problem, we make use of the Lyapunov CLT\cite{LyapunovCondition} to observe that the asymptotic distribution of $d_k$, the number of votes for Clinton in precinct $k$, is given by: 
+To address this problem, we make use of the Lyapunov CLT \cite{LyapunovCondition} to observe that the asymptotic distribution of $d_k$, the number of votes for Clinton in precinct $k$, is given by: 
 \[ d_k \stackrel{d} \longrightarrow N \left(\sum_{i} p_{k,i}, \sum_{i} p_{k, i}(1-p_{k, i}) \right) \] 
 where $p_{k, i}$ is the $i^{th}$ entry of $p_k$. This result is proven in the appendix. It allows us to \emph{estimate} the likelihood with a much simpler function of $\theta$. In this case, the contribution of precinct $k$ to the overall log-likelihood is approximately: 
 \[ \ell_k = -log \left( \phi_k\right) + \frac{1}{\phi_k^2} \left( d_k -\mu_k \right)^2  \] 
@@ -225,26 +254,21 @@ where $x_{k, i}$ are the covariates for the individual. Denoting $\mu_k = \sum_{
 \end{align*}
 where $\{x_j\}_j$ denotes a column vector consisting of the entries $x_j$ and $\circ$ denotes a Hadamard product. We implement these gradients and train our new neural net
 
+\subsection{Optimization Methodology}
+
+Our goal is to fit one set of parameters $\theta$ such that for voter $i$ with features $X_i$, $p_i = \sigma(\theta^TX_i)$ is an accurate representation of their probability of voting for Clinton. We train our model using gradient descent on the negative log-likelihood of our Poisson binomial distribution, where the log-likelihood and gradient functions are as defined in section 5.1. For each training epoch, we train our model on every precinct in the training set, updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence.
+
+We initialized all of our parameters to 0, which meant that at the beginning we were assuming that every voter had a 50\% chance of voting for Clinton. We experimented with regularization, but did not find it necessary as we were not having issues overfitting to the training set and adding regularization did not noticeably impact our model's performance on our holdout. 
+
+One specific issue we ran into when running gradient descent was extremely large or small gradients (that often returned as $NaN$ due to underflow issues). We found the best way to handle these gradients was to ignore the counties with extremely small gradients as they would not have changed the likelihood at all and to cap large gradients if they were beyond a certain magnitude.
+
+With the above methodology, we consistently reached convergence within 20 epochs when training our models.
 
 \section{Experiments}
 
-\subsection{Optimization Methodology}
+We had two main goals with our experiments. First, we wanted to show that our model was accurate in predicting voter preferences. We did this by training our model on 70\% of the counties in our dataset and evaluating it on the remaining 30\% in different ways. Secondly, once we were convinced that our model was accurate, we trained our model on the entire dataset to obtain a comprehensive voting model and checked it against accepted beliefs around voter preferences.
 
-NITIN TODO - flesh this out
-
-we used batch gradient descent, iterating over precincts. tried stochastic but got better results with batch.
-
-we also clamped really large gradients or nan gradients.
-
-Experimented with regularization but didn't get noticeably better results. so we had no hyperparameters to tune for our model
-
-20 epochs because we consistently saw convergence by this point (1 epoch = 1 run through entire training set).
-
-\subsection{Evaluation Metrics}
-
-TODO - Nitin
-
-We evaluated our model in a few different ways. Explain each of the 3 eval techniques (holdout $R^2$, weak labeling with landslides, weak labeling based on vote in primary)
+NITIN TODO - We evaluated our model in a few different ways. Explain each of the 3 eval techniques (holdout $R^2$, weak labeling with landslides, weak labeling based on vote in primary)
 
 \section{Results \& Analysis}
 
@@ -284,6 +308,8 @@ Once we begin training our model on only a training set and evaluating it on a h
 
 \section{Conclusion and Future Work}
 
+\newpage
+
 \section*{Appendix: Lyapunov CLT Proof}
 
 Define $d_k = \sum_{i = 1}^n d_{k, i}$ to be the number of Democratic votes in precinct $k$, where $d_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. $d_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define $s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i})$. 
@@ -299,7 +325,6 @@ The Lypaunov CLT now tells us that:
 \[ \frac{d_k - \sum_{i = 1}^{n} p_{k, i} }{s_k} \stackrel{d} \longrightarrow N(0, 1) \] 
 giving us the desired asymptotic normality. 
 
-\newpage
 \section{Contributions}
 TODO - update this
 

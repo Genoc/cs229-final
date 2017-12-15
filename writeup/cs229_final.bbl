@@ -22,12 +22,11 @@ S.~X. Chen and J.~S. Liu.
   bernoulli distributions.
 \newblock {\em Statistica Sinica}, 7(4):875--892, 1997.
 
-\bibitem{538}
-K.~Dropp.
-\newblock How we determined our 2016 likely voter model.
-\newblock
-  \url{https://morningconsult.com/2016/09/11/morning-consult-2016-likely-voter-model/},
-  2016.
+\bibitem{DOW2004107}
+J.~K. Dow and J.~W. Endersby.
+\newblock Multinomial probit and multinomial logit: a comparison of choice
+  models for voting research.
+\newblock {\em Electoral Studies}, 23(1):107 -- 122, 2004.
 
 \bibitem{dubrow2007choosing}
 J.~K. Dubrow.
@@ -39,12 +38,34 @@ W.~Ehm.
 \newblock Binomial approximation to the poisson binomial distribution.
 \newblock {\em Statistics \& Probability Letters}, 11(1):7 -- 16, 1991.
 
+\bibitem{frisina2008ballot}
+L.~Frisina, M.~C. Herron, J.~Honaker, and J.~B. Lewis.
+\newblock Ballot formats, touchscreens, and undervotes: A study of the 2006
+  midterm elections in florida.
+\newblock {\em Election Law Journal}, 7(1):25--47, 2008.
+
+\bibitem{10.2307/24371899}
+M.~C. Herron and D.~A. Smith.
+\newblock Race, party, and the consequences of restricting early voting in
+  florida in the 2012 general election.
+\newblock {\em Political Research Quarterly}, 67(3):646--665, 2014.
+
 \bibitem{HONG201341}
 Y.~Hong.
 \newblock On computing the distribution function for the poisson binomial
   distribution.
 \newblock {\em Computational Statistics \& Data Analysis}, 59(Supplement C):41
   -- 51, 2013.
+
+\bibitem{10.2307/2585758}
+J.~N. Katz and G.~King.
+\newblock A statistical model for multiparty electoral data.
+\newblock {\em The American Political Science Review}, 93(1):15--32, 1999.
+
+\bibitem{miller1998impact}
+J.~M. Miller and J.~A. Krosnick.
+\newblock The impact of candidate name order on election outcomes.
+\newblock {\em Public Opinion Quarterly}, pages 291--330, 1998.
 
 \bibitem{PAVoterFile}
 C.~of~Pennsylvania.
@@ -69,6 +90,14 @@ T.~Rusch, I.~Lee, K.~Hornik, W.~Jank, and A.~Zeileis.
 \newblock Influencing elections with statistics: Targeting voters with logistic
   regression trees.
 \newblock {\em The Annals of Applied Statistics}, pages 1612--1639, 2013.
+
+\bibitem{538}
+N.~Silver.
+\newblock A user’s guide to fivethirtyeight’s 2016 general election
+  forecast.
+\newblock
+  \url{https://fivethirtyeight.com/features/a-users-guide-to-fivethirtyeights-2016-general-election-forecast/},
+  2016.
 
 \bibitem{PoibiGithub}
 M.~J. Straka.
