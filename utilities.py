@@ -151,7 +151,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		data.columns = [makeReplaceName(s, electionMap) for s in data.columns.values]
 		precincts = np.unique(data['District 1'])
 
-		# pull the relevant county results 
+		# pull the relevant county results, and various adjustments to make sure the mapping is set up correctly
 		countyCode = countyMapping[countyMapping['County'] == county.upper()]['ID'].values[0]
 		countyElectionResults = electionResults[(electionResults['County Code'] == countyCode) & 
 			(electionResults['Candidate Office Code'] == 'USP')]
@@ -187,13 +187,11 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			sep = '\t', header = None)
 		zoneCodes.columns = ['County', 'Column', 'Value', 'Precinct Name']
 		zoneCodes = zoneCodes[zoneCodes['Column'] == 1]
-
-		# THIS IS AN EXTREMELY HACKY WAY TO TRY TO PAPER OVER SOME OF THE #
-		# MAPPING ISSUES AND I HAVE NO IDEA IF IT WILL WORK BUT OH WELL   #
+        
+		# map precincts from the voter file to precincts from the precinct-level election results
 		precincts = np.unique(data['District 1'])
 		if len(precincts) != len(trumpCountyVotes):
-			print 'SOMETHING IS WRONG'
-			t()
+			print 'Skipping county'
 		zoneCodes = zoneCodes.sort_values(by = 'Precinct Name')
 		trumpCountyVotes = trumpCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
 		clintonCountyVotes = clintonCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
@@ -225,6 +223,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			precinctData['Clinton Votes'] = clintonVotes
 			countyData[precinctName.strip()] = precinctData
 		allData[county] = countyData
+	# store what we need so we don't regenerate the data every time
 	pickle.dump(allData, open( "allData.pickle", "wb" ) )
 	return allData
 

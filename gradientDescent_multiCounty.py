@@ -123,6 +123,7 @@ elif weakLabels and test:
 # training loop
 numIterations = 10000 if stochasticGD else 50
 isFirst = True 
+# different loops depending on whether or not we are doing stochastic or "batch" gradient descent
 if stochasticGD:
 	for i in range(numIterations):
 
