@@ -108,6 +108,11 @@ N.~Quadrianto, A.~J. Smola, T.~S. Caetano, and Q.~V. Le.
 \newblock Estimating labels from label proportions.
 \newblock {\em Journal of Machine Learning Research}, 10(Oct):2349--2374, 2009.
 
+\bibitem{rbvr2017}
+A.~Ratner, S.~Bach, P.~Varma, and C.~Ré.
+\newblock Weak supervision: The new programming paradigm for machine learning,
+  Jul 2017.
+
 \bibitem{roos1999}
 B.~Roos.
 \newblock Asymptotics and sharp bounds in the poisson approximation to the

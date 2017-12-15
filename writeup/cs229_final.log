@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6300 64-bit) (preloaded format=pdflatex 2017.5.13)  14 DEC 2017 17:42
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6300 64-bit) (preloaded format=pdflatex 2017.5.13)  14 DEC 2017 20:45
 entering extended mode
 **./cs229_final.tex
 (cs229_final.tex
@@ -426,28 +426,85 @@ File: omsptm.fd
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 153.
- [1
+ [1{C:/ProgramData/MiKTeX/2.9/pdftex/config/pdftex.map}
 
-{C:/ProgramData/MiKTeX/2.9/pdftex/config/pdftex.map}]
+
+]
 Underfull \hbox (badness 10000) in paragraph at lines 171--172
 
  []
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 173.
+
+Overfull \hbox (123.11263pt too wide) in paragraph at lines 178--189
+ [] 
+ []
+
+
+Overfull \hbox (133.87169pt too wide) in paragraph at lines 196--205
+ [] 
+ []
+
 [2]
 
 Package amsmath Warning: Foreign command \atopwithdelims;
 (amsmath)                \frac or \genfrac should be used instead
 (amsmath)                 on input line 229.
 
-[3] <TrainingPath.png, id=91, 750.1626pt x 390.7398pt>
-File: TrainingPath.png Graphic file (type png)
- <use TrainingPath.png>
-Package pdftex.def Info: TrainingPath.png used on input line 286.
-(pdftex.def)             Requested size: 300.05972pt x 156.29315pt.
- [4] [5 <./TrainingPath.png>]
-(cs229_final.bbl
+
+Underfull \hbox (badness 1286) in paragraph at lines 236--238
+\OT1/ptm/m/n/10 where ir-rel-e-vant con-stants have been dropped, $\OML/cmm/m/it/10 [] \OT1/cmr/m/n/10 =
+ []
+
+
+Overfull \hbox (221.88246pt too wide) in paragraph at lines 240--240
+[] 
+ []
+
+
+Overfull \hbox (44.01045pt too wide) in paragraph at lines 256--256
+[] 
+ []
+
+[3] <training-loss.png, id=92, 637.38126pt x 372.39125pt>
+File: training-loss.png Graphic file (type png)
+ <use training-loss.png>
+Package pdftex.def Info: training-loss.png used on input line 278.
+(pdftex.def)             Requested size: 223.08678pt x 130.33888pt.
+
+<holdout-R2.png, id=94, 536.0025pt x 295.1025pt>
+File: holdout-R2.png Graphic file (type png)
+ <use holdout-R2.png>
+Package pdftex.def Info: holdout-R2.png used on input line 288.
+(pdftex.def)             Requested size: 187.60368pt x 103.28741pt.
+
+<holdout-R2-neural.png, id=97, 660.4675pt x 345.29pt>
+File: holdout-R2-neural.png Graphic file (type png)
+ <use holdout-R2-neural.png>
+Package pdftex.def Info: holdout-R2-neural.png used on input line 298.
+(pdftex.def)             Requested size: 231.16708pt x 120.8533pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ <lanslideHist19.png, id=100, 578.16pt x 433.62pt>
+File: lanslideHist19.png Graphic file (type png)
+
+<use lanslideHist19.png>
+Package pdftex.def Info: lanslideHist19.png used on input line 314.
+(pdftex.def)             Requested size: 231.2599pt x 173.44492pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [4 <./training-loss.png (PNG copy)> <./holdout-R2.png> <./holdout-R2-neural.png>] <primaryVoters19.png, id=117, 578.16p
+t x 433.62pt>
+File: primaryVoters19.png Graphic file (type png)
+ <use primaryVoters19.png>
+Package pdftex.def Info: primaryVoters19.png used on input line 326.
+(pdftex.def)             Requested size: 231.2599pt x 173.44492pt.
+ [5 <./lanslideHist19.png> <./primaryVoters19.png>] [6
+
+] (cs229_final.bbl
 Underfull \hbox (badness 10000) in paragraph at lines 89--94
 []\OT1/ptm/m/n/9 C. of Penn-syl-va-nia.  Penn-syl-va-nia full voter ex-port.  []$\OT1/pcr/m/n/9 https : / / www . pavote
 rservices . pa . gov / Pages /
@@ -459,7 +516,11 @@ Underfull \hbox (badness 10000) in paragraph at lines 96--99
  openelections /
  []
 
-[6]
+[7
+
+]
+Missing character: There is no Ã in font ptmr7t!
+Missing character: There is no © in font ptmr7t!
 Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
@@ -467,39 +528,40 @@ Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
 
-Underfull \hbox (badness 6236) in paragraph at lines 142--147
+Underfull \hbox (badness 6236) in paragraph at lines 147--152
 []\OT1/ptm/m/n/9 N. Y. Times.  Penn-syl-va-nia pres-i-den-tial race re-sults.  []$\OT1/pcr/m/n/9 https : / / www . nytim
 es . com / elections / results /
  []
 
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 340.
- [7]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 340.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 400.
+ [8]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 400.
  (cs229_final.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 340.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 340.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 340.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 400.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 400.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 400.
  ) 
 Here is how much of TeX's memory you used:
- 7447 strings out of 493328
- 108809 string characters out of 3139124
- 207904 words of memory out of 3000000
- 10787 multiletter control sequences out of 15000+200000
+ 7490 strings out of 493328
+ 109562 string characters out of 3139124
+ 212364 words of memory out of 3000000
+ 10818 multiletter control sequences out of 15000+200000
  29742 words of font info for 78 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 34i,11n,26p,1101b,481s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 34i,11n,26p,1101b,474s stack positions out of 5000i,500n,10000p,200000b,50000s
 {D:/Program Files/MiKTeX 2.9/fonts/enc/dvips/base/8r.enc}<D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/c
 mex10.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><D:/Program Files/MiKTeX 2.9/fonts/type
 1/public/amsfonts/cm/cmmi5.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><D:/Program Files/M
-iKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr7.pfb>
-<D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/a
-msfonts/cm/cmsy7.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/urw/courier/ucrr8a.pfb><D:/Program Files/MiKTeX 2.9/fonts/
-type1/urw/times/utmb8a.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/urw/times/utmr8a.pfb><D:/Program Files/MiKTeX 2.9/fo
-nts/type1/urw/times/utmri8a.pfb>
-Output written on cs229_final.pdf (7 pages, 252067 bytes).
+iKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi9.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb
+><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr6.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/am
+sfonts/cm/cmr7.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><D:/Program Files/MiKTeX 2.9/f
+onts/type1/public/amsfonts/cm/cmsy7.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/urw/courier/ucrr8a.pfb><D:/Program File
+s/MiKTeX 2.9/fonts/type1/urw/times/utmb8a.pfb><D:/Program Files/MiKTeX 2.9/fonts/type1/urw/times/utmr8a.pfb><D:/Program 
+Files/MiKTeX 2.9/fonts/type1/urw/times/utmri8a.pfb>
+Output written on cs229_final.pdf (8 pages, 330584 bytes).
 PDF statistics:
- 184 PDF objects out of 1000 (max. 8388607)
- 53 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 219 PDF objects out of 1000 (max. 8388607)
+ 61 named destinations out of 1000 (max. 500000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 

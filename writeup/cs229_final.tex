@@ -1,5 +1,5 @@
-\documentclass[10pt, letterpaper]{article}
-% \documentclass[10pt,twocolumn,letterpaper]{article}
+% \documentclass[10pt, letterpaper]{article}
+\documentclass[10pt,twocolumn,letterpaper]{article}
 % \usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage{cvpr}
 \usepackage{times}
@@ -239,8 +239,8 @@ where irrelevant constants have been dropped, $\mu_k =  \sum_{i} p_{k, i}(1-p_{k
 \nabla_{\theta} \ell_k &=  -\frac{1}{2} \left(\frac{(d_k - \mu_k)^2}{\phi^4} - \frac{1}{\phi^2} \right) \left( \sum_{i} (2 p_{k, i} - 1)(1-p_{k, i})p_{k, i}x_{k, i} \right) + \frac{1}{\phi^2} (d_k - \mu_k) \left( \sum_i p_{k, i} (1 - p_{k, i}) x_{k, i} \right)
 \end{align*}
 
-\subsection{Neural Net} 
-As one potential improvement to our modeling, we considered using a neural net -- rather than a simple logistic regression -- to relate individual-level covariates to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
+\subsection{Neural Network} 
+As one potential improvement over the logistic regression model, we also looked at using a neural network rather than a simple logistic regression to relate individual-level features to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
 \begin{align*}
 h_{k, i} &= \sigma\left(W_1 x_{k, i} + b_1 \right) \\
 p_{k, i} &= \sigma\left(W_2 h_{k, i} + b_2 \right) 
@@ -254,63 +254,125 @@ where $x_{k, i}$ are the covariates for the individual. Denoting $\mu_k = \sum_{
 \frac{\ell_k}{\partial b_1} &= \sum_{j = 1}^{n_k} \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j \\
 \frac{\ell_k}{\partial W_1} &= \left\{ x_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j
 \end{align*}
-where $\{x_j\}_j$ denotes a column vector consisting of the entries $x_j$ and $\circ$ denotes a Hadamard product. We implement these gradients and train our new neural net
+where $\{x_j\}_j$ denotes a column vector consisting of the entries $x_j$ and $\circ$ denotes a Hadamard product.
+
+For our experiments, we construct a neural network with 1 hidden layer with 10 hidden units. We experimented with some other sizes for the hidden layer but saw little change in performance.
 
 \subsection{Optimization Methodology}
 
-Our goal is to fit one set of parameters $\theta$ such that for voter $i$ with features $X_i$, $p_i = \sigma(\theta^TX_i)$ is an accurate representation of their probability of voting for Clinton. We train our model using gradient descent on the negative log-likelihood of our Poisson binomial distribution, where the log-likelihood and gradient functions are as defined in section 5.1. For each training epoch, we train our model on every precinct in the training set, updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence.
+Our goal is to obtain an accurate representation of the probability of any given voter to vote for Clinton. We train our model using gradient descent where the log-likelihood and gradients for our runs are as defined in sections 5.2 and 5.3. For each training epoch, we train our model on every precinct in the training set, updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence.
 
-We initialized all of our parameters to 0, which meant that at the beginning we were assuming that every voter had a 50\% chance of voting for Clinton. We experimented with regularization, but did not find it necessary as we were not having issues overfitting to the training set and adding regularization did not noticeably impact our model's performance on our holdout. 
+We initialized all of our parameters to 0, which meant that at the beginning we were assuming that every voter had a 50\% chance of voting for Clinton. For both the model using basic logistic regression and the model using a neural network, we experimented with regularization but did not find it necessary as we were not having issues overfitting to the training set and adding regularization did not noticeably impact our model performance on our test set. 
 
 One specific issue we ran into when running gradient descent was extremely large or small gradients (that often returned as $NaN$ due to underflow issues). We found the best way to handle these gradients was to ignore the counties with extremely small gradients as they would not have changed the likelihood at all and to cap large gradients if they were beyond a certain magnitude.
 
-With the above methodology, we consistently reached convergence within 20 epochs when training our models.
-
-\section{Experiments}
-
-We had two main goals with our experiments. First, we wanted to show that our model was accurate in predicting voter preferences. We did this by training our model on 70\% of the counties in our dataset and evaluating it on the remaining 30\% in different ways. Secondly, once we were convinced that our model was accurate, we trained our model on the entire dataset to obtain a comprehensive voting model and checked it against accepted beliefs around voter preferences.
-
-NITIN TODO - We evaluated our model in a few different ways. Explain each of the 3 eval techniques (holdout $R^2$, weak labeling with landslides, weak labeling based on vote in primary)
+We evaluated the fit of our model both by ensuring that the loss (i.e. negative log-likelihood) decreased over time and also by looking at training vs. test $R^2$ values. Decreasing loss over training epochs indicates that our model is improving, and we look for it to eventually stabilize which indicates that the parameter values have converged. When training our model, we consistently reached convergence within 20 epochs.
 
 \section{Results \& Analysis}
 
-TODO - subsection for each experiment we ran with a summary and explanation of the results.
+\subsection{Evaluating model accuracy}
+First, we wanted to show that our models were accurate in predicting voter preferences. We did this by training our model on 70\% of the counties in our dataset and evaluating it on the remaining 30\% in different ways.
 
-
-
-\section{Results}
-
-Using stochastic gradient ascent, we fit a simple model to the four counties where we predict the probability to vote for Clinton given county, party registration, primary participation, gender, and age. Computing the log-likelihood every 25 iterations, we see a modest improvement over the first 400 iterations (after which the log-likelihood plateaus): 
 \begin{figure}[H]
-\centering
-\includegraphics[scale = 0.4]{TrainingPath}
+\begin{center}
+\includegraphics[scale=0.35]{training-loss}
+\end{center}
+\caption{Training loss for logistic regression voter model}
+\label{fig:training-loss}
 \end{figure}
 
-Below we present the coefficients coming out of the model, noting that positive values indicate that a voter is more likely to vote for Clinton over Trump:
+We can see in Figure \ref{fig:training-loss} that our training loss decreases over time and converges after around 10 epochs. We saw similar loss decrease and rates of convergence for our neural network model as well.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.35]{holdout-R2}
+\end{center}
+\caption{Training and Test $R^2$ for logistic regression voter model}
+\label{fig:holdout-R2}
+\end{figure}
+
+Figure \ref{fig:holdout-R2} shows model $R^2$ over time if we use logistic regression to represent individual voter behavior. The final training set $R^2$ for this model is 82.2\% and the final test set $R^2$ is 75.4\%.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.35]{holdout-R2-neural}
+\end{center}
+\caption{Training and Test $R^2$ for neural network voter model}
+\label{fig:holdout-R2-neural}
+\end{figure}
+
+Figure \ref{fig:holdout-R2-neural} shows model $R^2$ over time if we use a neural network to represent individual voter behavior. The final training set $R^2$ for this model is 86.3\% and the final test set $R^2$ is 75.1\%. The training set accuracy is higher than in the logistic regression model, but the test set accuracy is slightly lower. The neural network's additional complexity does not seem to be helping us better model the data. We also tried adding L2 regularization by setting $\lambda = 0.7$ as well as trying some other values, but we saw no improvement to test set $R^2$.
+
+\subsection{Weak labeling results}
+
+After we were convinced that our model performed well at a higher level, we then wanted to show model accuracy at the individual voter level. However, due to the nature of voting data and secret ballot, we do not actually have any labeled data that we can use to validate our model. To get around this, we derived and used weak labels as an approximate way to gauge our model's performance. Weak labels have been studied in prior literature and are used in supervised learning problems where either no labeled data is available or the available data is insufficient ~\cite{rbvr2017}.
+
+We applied two different forms of weak labels to gauge model performance at the individual voter level. First, we evaluated our model only against landslide precincts in the test set, where we define a landslide precinct to be one where 90\% or more of voters supported the same candidate. We evaluated our model against voters in these precincts and expected to see the model predicting very high probabilities of voting for Clinton for voters in precincts that actually went to Clinton and predicting very low probabilities of voting for Clinton for voters in precincts that actually went to Trump.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.4]{lanslideHist19}
+\end{center}
+\caption{Predictions for voters in landslide precincts}
+\label{fig:lanslideHist19}
+\end{figure}
+
+Figure \ref{fig:lanslideHist19} has the expected bimodal distribution - the voters we looked at are either heavily in favor of or heavily against Clinton, lining up with the expected results in landslide precincts.
+
+The second form of weak labeling we looked at assumed that 2016 Republican primary voters voted for Trump in the general election while 2016 Democratic primary voters voted for Clinton in the general election. We assume that voters who voted in the primary would tend to have strong party loyalty, so we would expect to see a bimodal distribution here as well where voters were predicted to vote for either Clinton or Trump with a very high probability. We rebuilt our model but took out the features indicating whether or not voters voted in their respective primaries, and then evaluated our model only on test set voters who voted in a primary.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.4]{primaryVoters19}
+\end{center}
+\caption{Predictions for primary election voters}
+\label{fig:primaryVoters19}
+\end{figure}
+
+Figure \ref{fig:primaryVoters19} has the expected bimodal distribution, indicating that the model has learned that primary voters are indeed more likely to vote along party lines in the general election as well. These two weak label results show that our model does predict individual voter performance accurately.
+
+\subsection{Final model trained on all data}
+
+After we were convinced of the accuracy of the model, we then trained it using our entire dataset to build our final voter model. Our model coefficients are available in table~\ref{table:coeff}. Note that positive values correspond to a higher probability of voting for Clinton.
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|l|l|l|l|l|lll}
-\cline{1-2} \cline{4-5} \cline{7-8}
-is Chester resident?   & 0.61  &  & is registered Democrat?      & 0.30  & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{is Female?} & \multicolumn{1}{l|}{0.03}  \\ \cline{1-2} \cline{4-5} \cline{7-8} 
-is Adams resident?     & -0.42 &  & is registered Republican?    & -0.52 & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{is Male?}   & \multicolumn{1}{l|}{-0.05} \\ \cline{1-2} \cline{4-5} \cline{7-8} 
-is Bedford resident?   & -0.78 &  & voted in Democratic primary? & 0.18  & \multicolumn{1}{l|}{} & \multicolumn{1}{l|}{Age}        & \multicolumn{1}{l|}{-0.26} \\ \cline{1-2} \cline{4-5} \cline{7-8} 
-is Allgeheny resident? & 0.39  &  & voted in Republican primary? & -0.30 &                       &                                 &                            \\ \cline{1-2} \cline{4-5}
+\begin{tabular}{|l|c|}
+\hline
+Model Term & Value \\
+\hline 
+Apartment Dweller & 0.998  \\
+Registered Democrat & 0.990  \\
+County College Educated \% & 0.390  \\
+Voted in the Democratic Primary & 0.294  \\
+County Population Density & 0.204  \\
+Female & 0.123  \\
+County Latino \% & 0.061  \\
+County Black \% & 0.001  \\
+County White \% & -0.155  \\
+County Income & -0.157  \\
+Male & -0.332  \\
+Age & -0.333  \\
+Voted in the Republican Primary & -0.407  \\
+Registered Republican & -1.154  \\
+\hline
 \end{tabular}
+\label{table:coeff}
+\caption{Model coefficients. Positive values correspond to a higher probability of voting for Clinton}
 \end{table}
-These results are in line with what we would expect. For example, older voters are more likely to vote for Trump and registered Democrats are more likely to vote for Clinton.
 
-\section{Next Steps}
-
-Our initial results are encouraging and we have a few key next steps as we proceed with our project. Our main next step is to run our model with more data, using as much of Pennsylvania as we can use. We would also like to fit more complex models with more predictors, possibly incorporating data from sources beyond the Pennsylvania voter file itself such as demographics if we can obtain them. As we obtain more data and fit more complex models, it will be important to make sure that we are converging efficiently. We are currently performing vanilla stochastic gradient descent, and we will investigate other optimization techniques such as Adam.
-
-Once we are able to train on more data, we will split our data into training and test sets instead of training on all of it. Our plan is to train our model on 70\% of the precincts in Pennsylvania and then test on the remaining 30\% to gauge model accuracy, using the total number of Clinton and Trump votes per precinct as the outcome variable. We are are particularly curious to see if our approach (modeling at the individual level) can yield better predictions than modeling at the precinct level by aggregated individual-level features. There are many approaches to modeling at the precinct level (e.g. linear regression, neural nets) that we can compare against. We will also see if we can compare our approach against existing voter models that use polling data.
-
-Once we begin training our model on only a training set and evaluating it on a holdout, we will experiment with adding regularization to see if it improves performance. In addition to gradient descent, we would also like to explore alternative methods for maximizing the log likelihood such as numerical gradients and expectation maximization.
+These results are in line with what we would expect. For example, older and lower income voters are more likely to vote for Trump while women and registered Democrats are more likely to vote for Clinton. These results also help show that we have developed an explanatory model for voter preference. 
 
 \section{Conclusion and Future Work}
 
+We have used aggregated precinct-level election data to build a model predicting how individual voters will vote by using Poisson binomial GLMs. This is not only the first time in literature that individual voter prediction models have been built without relying on polling data or other unreliable sources, but also the first time that the Poisson binomial distribution has been used as a generalized linear model as well. We train our model via gradient descent using a normal approximation of the Poisson binomial distribution that we derive (proof in the Appendix), and we validate the accuracy of the model using weak labels. We model individual voter behavior using both logistic regression as well as a simple neural network. After validating model accuracy, we retrain the model on the entire dataset to obtain our final model revealing individual voter preferences for Pennsylvania during the 2016 presidential elections. This type of model is incredibly valuable given the inherent unreliability of polling data, especially as evidenced in recent high-profile elections.
+
+For future work, we'd like to further explore the idea of using neural networks to represent individual voter probabilities. Our investigation of neural networks yielded results that were close to the logistic regression approach. With further exploration and tuning of hyperparameters, we could likely obtain a neural network model that outperforms the linear model. We could also look at other regularization schemes such as dropout to reduce the gap between the training and test performance. In addition to investigating neural networks further we could also look at other regression models besides logistic regression to model individual voter behavior, for example the probit distribution.
+
+We would also like to revisit the data for counties that we were not able to use for our initial analysis so we can incorporate them into the analysis as well, and develop data pipelines that would allow us to efficiently repeat this analysis on other states and elections throughout the US. 
+
 \newpage
+\onecolumn
 
 \section*{Appendix: Lyapunov CLT Proof}
 
@@ -328,9 +390,7 @@ The Lypaunov CLT now tells us that:
 giving us the desired asymptotic normality. 
 
 \section{Contributions}
-TODO - update this
-
-Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the progress made so far for the milestone and derived the CLT proof, while Nitin wrote up the milestone report as well as additional sections that will be useful for the final project report and focused on establishing better data mappings between our two datasets.
+Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the optimization algorithm and derived the CLT proof, while Nitin wrote the majority of the report and cleaned the data to allow us to use as many counties/precincts as possible. Both Evan and Nitin reviewed each other's work in addition to the parts they lead.
 
 {\small
 \bibliographystyle{ieee}
