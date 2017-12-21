@@ -145,13 +145,13 @@ Stanford University\\
 \begin{multicols}{2}
 
 \section{Introduction}
-Political organizations seek to build voting models to explain individual voter preferences, as this information is vital for voter targeting. For example, they want to identify swing voters to focus outreach efforts for future elections.
+For American political parties to compete effectively, it is vital to obtain accurate models of individual voter preferences. Using such models, parties can identify swing voters and focus outreach efforts ahead of elections. 
 
-In the US, voting data indicating how many votes every candidate receives is available at the precinct level, but the most granular data -- who voted for which candidate -- is private. As a result, political groups are forced to rely on polling data to perform analysis at the individual voter level. However, state-level polling data can be inaccurate, as it was in the 2016 presidential election. We instead develop individual voter models based off of publicly available precinct-level voting data. Precinct-level election results are the most granular results available.
+In the U.S., vote tallies for every candidate in a given race are available at the precinct level, but the most granular data -- who voted for which candidate -- is private. As a result, political groups are forced to rely on polling data to perform analysis at the individual voter level. However, state-level polling data can be inaccurate, as it was in the 2016 presidential election. To address this problem, we develop individual voter models based off of publicly available precinct-level voting data.
 
-We develop a new type of generalized linear model (GLM) to explain individual voter behavior in Pennsylvania for the 2016 presidential election. We focus on predicting votes for both Hillary Clinton and Donald Trump in the state of Pennsylvania as it was a key swing state that went in favor of Donald Trump. Trump's margin of victory was very slim at only 0.72\% more than Clinton's \cite{NYT}. 
+We develop a new type of generalized linear model (GLM), the Poisson binomial generalized linear model, for this task. To our knowledge this GLM formulation has not previously been implemented in the literature. 
 
-We formulate the problem using a Poisson binomial generalized linear model, which has not to our knowledge been done before in other literature. We then minimize the negative log-likelihood via batch gradient descent and verify the accuracy of our model.
+We fit this model to the results from the 2016 presidential election in Pennsylvania, a key swing state that, in an upset, favored Donald Trump over Hillary Clinton by a margin of 0.72\% \cite{NYT}. The model is fit by minimizing the negative log-likelihood of the Poisson binomial, allowing us to discover associations between individual voting preferences and key covariates. We then verify the accuracy of our model on a holdout set. 
 
 Our paper makes two key contributions:
 \begin{itemize}[noitemsep]
@@ -210,54 +210,52 @@ Our other dataset is the \textbf{Pennsylvania voter file} which we obtained dire
 
 \subsection{Dataset Preparation and Validation}
 
-Because these files were sourced from two different datasets, we ran into challenges in cleanly mapping them with each other. In particular, there is no shared precinct identifier across the files - precinct names often did not match between the files as in the above examples, and there was no other common precinct identifier. As a result, we had to review all 9,000+ precincts manually to determine the best way to match them between the files. If either the voter file or precinct-level results were corrupted or did not match which each other, we removed the entire county from our dataset.
+Because these files were sourced from two different datasets, we ran into challenges in cleanly mapping them with each other. In particular, there is no shared precinct identifier across the files -- precinct names often did not match between the files as in the above examples, and there was no other common precinct identifier. As a result, we had to review all 9,000+ precincts manually to determine the best way to match them between the files. If either the voter file or precinct-level results were corrupted or did not match which each other, we removed the entire county from our dataset.
 
 After our data cleaning, filtering, and mapping, we ended up with a dataset of 48 of Pennsylvania's 67 counties. Together, these counties represent 6,837 precincts and about 4.07 million total votes for Clinton and Trump. This corresponds to about 66\% of voters in Pennsylvania. The sample had a small pro-Clinton bias, with $52.1\%$ of the voters who cast a major-party ballot supporting Clinton in our sample, versus 49.6\% statewide. 
 
-We only model based on the vote counts for Hillary Clinton and Donald Trump because about 96\% of votes went for one of them. We examined this further and saw that the sum of Clinton/Trump votes in some precincts is not equal to the total number of votes cast, but is within 10\% in most cases. To address this, we take the percentage of Clinton/Trump votes cast in a precinct went to Clinton and multiply it by the total number of Clinton/Trump votes in the precinct, and repeat this for Trump. This is our estimate of how many voters in a precinct would have went for Clinton/Trump if these two candidates were the only two options.
+We only model based on the vote counts for Hillary Clinton and Donald Trump because about 96\% of votes went for one of them. We examined this further and saw that the sum of Clinton/Trump votes in some precincts is not equal to the total number of votes cast, but is within 10\% in the vast majority of cases. To address this, we take the percentage of Clinton/Trump votes cast in a precinct that went to Clinton and multiply it by the total number of votes in the precinct, and repeat this for Trump. This is our estimate of how many voters in a precinct would have chosen Clinton or Trump if these two candidates were the only two options.
 
 \section{Methods}
 
 \subsection{Poisson Binomial GLM}
 
-We use a generalized linear model based on the Poisson binomial distribution. We model an individual $i$ voting for Clinton as a Bernoulli random variable, so $p_i = \sigma(\theta^TX_i)$, where $\sigma(.)$ denotes the sigmoid function, $\theta$ is a set of parameters to fit, and $X_i$ are known covariates for voter $i$ from the Pennsylvania voter file. Note that the probability of an not voting for Clinton (i.e. voting for Trump) is $1 - p_i$. We assume that these Bernoulli random variables are independent but not necessarily identically distributed, since we expect that different voters would have different probabilities of voting for Clinton.
+We use a generalized linear model based on the Poisson binomial distribution. We model an individual $i$ in precinct $k$ voting for Clinton as a Bernoulli random variable with success probability $p_{k, i} = \sigma(\theta^Tx_{k, i})$, where $\sigma(\cdot)$ denotes the sigmoid function, $\theta$ is parameter vector to fit, and $x_{k, i}$ are known covariates for voter $i$ from the Pennsylvania voter file. The probability of voting for Trump is $1 - p_{k, i}$. We assume that these Bernoulli random variables are independent but not necessarily identically distributed, since we expect that different voters would have different probabilities of voting for Clinton.
 
-Combining this representation of a voter with the fact that in a given precinct we know the total number of votes for Clinton and Trump, the total number of Clinton voters in each precinct will follow a Poisson binomial distribution, which is the probability distribution of a sum of independent but not necessarily identically distributed Bernoulli random variables \cite{Poibi}. For a precinct $k$ with $D$ votes for Clinton out of $T$ total votes, the likelihood is given by:
+Combining this representation of a voter with the fact that in a given precinct we know the total number of votes for Clinton and Trump, the total number of Clinton voters in each precinct will follow a Poisson binomial distribution, which is the probability distribution of a sum of independent but not necessarily identically distributed Bernoulli random variables \cite{Poibi}. For a precinct $k$ with $D_k$ votes for Clinton out of $T_k$ total votes, the log likelihood is given by:
+\[ \ell_k(\theta) = log \left( \sum_{A \in F_k} \prod_{i \in A} p_{k,i} \prod_{j \in A^c}(1 - p_{k, j}) \right) \]
+where $F_k$ is the set of all configurations of $T_k$ votes in which a total of $D_k$ votes were cast for Clinton; $A$ is the set of voters who voted for Clinton under that configuration, and $A^c$ is the set of voters who voted for Trump under that configuration. The log likelihood of the precinct-level results given parameters $\theta$ can be calculated by adding the likelihoods from every precinct together:
 
-$$\ell_k(\theta) = \sum_{A \in F_k} \prod_{i \in A} p_i \prod_{j \in A^c}(1 - p_j)$$
-where $F_k$ is the set of all configurations of $T$ votes in which a total of $D$ votes were cast for Clinton; $A$ is the set of voters who voted for Clinton under that configuration, and $A^c$ is the set of voters who voted for Trump under that configuration. The likelihood of the precinct-level results given parameters $\theta$ can be calculated by multiplying the likelihoods from every precinct together:
-
-$$\ell(\theta) = \prod_k \ell_k(\theta)$$
+$$\ell(\theta) = \sum_k \ell_k(\theta)$$
 
 In order to determine the optimal parameters $\theta$, we need to maximize this likelihood over the Pennsylvania precincts. Note that the Poisson binomial likelihood involves sums over all possible configurations of votes -- e.g. if Clinton received 200 out of 500 total votes in a precinct, then the likelihood involves a sum over $500 \choose 200$ configurations. Although we can directly estimate the likelihood using the \texttt{poibin} package, calculating the gradient is computationally infeasible.
 
 \subsection{Calculating the Gradient}
 
-To address this problem, we make use of the Lyapunov CLT \cite{LyapunovCondition} to observe that the asymptotic distribution of $d_k$, the number of votes for Clinton in precinct $k$, is given by: 
-\[ d_k \stackrel{d} \longrightarrow N \left(\sum_{i} p_{k,i}, \sum_{i} p_{k, i}(1-p_{k, i}) \right) \] 
-where $p_{k, i}$ is the $i^{th}$ entry of $p_k$. This result is proven in the appendix. It allows us to \emph{estimate} the likelihood with a much simpler function of $\theta$. In this case, the contribution of precinct $k$ to the overall log-likelihood is approximately
-\[ \ell_k = -log \left( \phi_k\right) + \frac{1}{\phi_k^2} \left( d_k -\mu_k \right)^2 \]
-where irrelevant constants have been dropped, $\mu_k =  \sum_{i} p_{k, i}(1-p_{k, i}), \phi_k^2 = \sum_{i} p_{k, i}(1-p_{k, i})$, and $p_{k, i} = \sigma(\theta^T x_{k, i})$. This yields a gradient of the form: 
+To address this problem, we make use of the Lyapunov CLT \cite{LyapunovCondition} to observe that the asymptotic distribution of $D_k$ is given by: 
+\[ D_k \stackrel{d} \longrightarrow N \left(\sum_{i} p_{k,i}, \sum_{i} p_{k, i}(1-p_{k, i}) \right) \] 
+This result is proven in the appendix. It allows us to \emph{estimate} the likelihood with a much simpler function of $\theta$. In this case, the contribution of precinct $k$ to the overall log-likelihood is approximately
+\[ \ell_k(\theta) \approx -log \left( \phi_k\right) + \frac{1}{\phi_k^2} \left( D_k -\mu_k \right)^2 \]
+where irrelevant constants have been dropped, $\mu_k =  \sum_{i} p_{k, i}, \phi_k^2 = \sum_{i} p_{k, i}(1-p_{k, i})$, and $p_{k, i} = \sigma(\theta^T x_{k, i})$. This yields a gradient of the form: 
 \begin{align*}
-&\nabla_{\theta} \ell_k = \frac{1}{\phi^2} (d_k - \mu_k) \left( \sum_i p_{k, i} (1 - p_{k, i}) x_{k, i} \right)-\\&  \frac{1}{2} \left(\frac{(d_k - \mu_k)^2}{\phi^4} - \frac{1}{\phi^2} \right) \left( \sum_{i} (2 p_{k, i} - 1)(1-p_{k, i})p_{k, i}x_{k, i} \right)
+&\nabla_{\theta} \ell_k \approx \frac{1}{\phi^2} (D_k - \mu_k) \left( \sum_i p_{k, i} (1 - p_{k, i}) x_{k, i} \right)-\\&  \frac{1}{2} \left(\frac{(D_k - \mu_k)^2}{\phi^4} - \frac{1}{\phi^2} \right) \left( \sum_{i} (2 p_{k, i} - 1)(1-p_{k, i})p_{k, i}x_{k, i} \right)
  \end{align*}
 
 \subsection{Neural Network} 
-As one potential improvement over the logistic regression model, we also looked at using a neural network rather than a logistic regression to relate individual-level features to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
+As one potential improvement, we also looked at using a neural network rather than a logistic regression to relate individual-level features to the probability of voting for Clinton. In particular, our new model for $p_{k, i}$, the Clinton-voting probability for person $i$ in precinct $k$, is given by: 
 \begin{align*}
 h_{k, i} &= \sigma\left(W_1 x_{k, i} + b_1 \right) \\
 p_{k, i} &= \sigma\left(W_2 h_{k, i} + b_2 \right) 
 \end{align*}
-where $x_{k, i}$ are the covariates for the individual. Denoting $\mu_k = \sum_{i = 1}^{n_k} p_{k, i}$ and $\sigma_k^2 = \sum_{i = 1}^{n_k} p_{k, i} (1 - p_{k, i})$ where $n_k$ is the number of votes cast in precinct $k$, we see: 
-
+where $W_1, W_2$ are weight matrices and $b_1, b_2$ bias vectors. We can compute the gradients: 
 \begin{align*}
-\frac{\partial \ell_k}{\partial p_{k, j}} &= - \frac{1 - 2p_{k, j}}{2 \sigma_k^2} + \frac{1 - 2p_{k, j}}{2 \sigma_k^4} (d_k - \mu_k)^2  + \frac{1}{\sigma_k^2} \left(d_k - \mu_k \right) \\
-\frac{\ell_k}{\partial b_2} &= \sum_{j = 1}^{n_k} \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j}) \\
-\frac{\ell_k}{\partial W_2} &= \left\{ h_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} 
+\frac{\partial \ell_k}{\partial p_{k, j}} &= - \frac{1 - 2p_{k, j}}{2 \phi_k^2} + \frac{1 - 2p_{k, j}}{2 \phi_k^4} (d_k - \mu_k)^2  + \frac{1}{\phi_k^2} \left(d_k - \mu_k \right) \\
+\frac{\partial \ell_k}{\partial b_2} &= \sum_{j = 1}^{n_k} \frac{\partial \ell_k}{\partial p_{k, j}} p_{k, j} (1 - p_{k, j}) \\
+\frac{\partial \ell_k}{\partial W_2} &= \left\{ h_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} p_{k, j} (1 - p_{k, j})\right\}_{j} \\
+\frac{\partial \ell_k}{\partial b_1} &= \sum_{j = 1}^{n_k} \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j 
 \end{align*}
 \begin{align*}
-\frac{\ell_k}{\partial b_1} &= \sum_{j = 1}^{n_k} \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j \\
-\frac{\ell_k}{\partial W_1} &= \left\{ x_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j
+\frac{\partial\ell_k}{\partial W_1} &= \left\{ x_{k, j} \right\}_j^T \left\{ \frac{\partial \ell_k}{\partial p_{k, j}} \cdot p_{k, j} (1 - p_{k, j})\right\}_{j} W_2^T \circ \left\{ h_{k, j}(1 - h_{k, j})\right\}_j
 \end{align*}
 where $\{x_j\}_j$ denotes a column vector consisting of the entries $x_j$ and $\circ$ denotes a Hadamard product.
 
@@ -265,38 +263,42 @@ For our experiments, we construct a neural network with 1 hidden layer with 10 n
 
 \subsection{Optimization Methodology}
 
-Our goal is to obtain an accurate representation of the probability of any given voter to vote for Clinton. We train our model using gradient descent where the log-likelihood and gradients for our runs are as defined in sections 4.2 and 4.3. For each training epoch, we train our model on every precinct in the training set, looping through them in the same order every time and updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence.
+Our goal is to obtain an accurate representation of the probability of any given voter to vote for Clinton. We train our model using gradient descent where the log-likelihood and gradients for our runs are as defined in sections 4.2 and 4.3. For each training epoch, we train our model on every precinct in the training set, looping through them in the same order every time and updating parameter values after each precinct. We explored using batch and stochastic gradient descent, but both of these resulted in slower convergence. We used a learning rate of 0.0001 with annealing at a $n^{-1/2}$ decay. 
 
-We initialize all of our parameters to 0, so initially every every voter has a 50\% chance of voting for Clinton. For both the model using basic logistic regression and the model using a neural network, we experimented with regularization but did not find it necessary as we were not having issues overfitting to the training set.
+In the logistic regression case, we initialize our coefficients to zero (yielding a 50\% Clinton-voting probability for every voter). For the neural net, we initialize $W_1, W_2$ to small random uniform values in $[-0.1, 0.1]$. We saw no overfit issues with the logistic regression model, but a small tendency to overfit in the neural network. We experimented with using an $L_2$ penalty for the neural net but were not able to get a performance improvement on the test set. 
 
-One specific issue we ran into when running gradient descent was extremely large or small gradients (that often returned as $NaN$ due to underflow issues). We handled small gradients by ignoring them, as they would not have changed the likelihood at all, and we handled large precincts by capping them.
+%We initialize all of our parameters to 0, so initially every every voter has a 50\% chance of voting for Clinton. For both the model using basic logistic regression and the model using a neural network, we experimented with regularization but did not find it necessary as we were not having issues overfitting to the training set.
 
-We evaluated the fit of our model both by ensuring that the loss (i.e. negative log-likelihood) decreased over time and also by looking at training vs. test $R^2$ values. Decreasing loss over training epochs indicates that our model is improving, and we look for it to eventually stabilize which indicates that the parameter values have converged. When training our model, we consistently reached convergence within 20 epochs.
+One specific issue we ran into when running gradient descent was extremely large or small gradients (that often returned as $NaN$ due to underflow issues). We handled small gradients by ignoring them, as they would not have changed the likelihood at all, and we handled large gradients by capping them.
+
+We evaluated the fit of our model both by ensuring that the loss (i.e. negative log-likelihood) decreased over time and also by looking at training vs. test $R^2$ values. Decreasing loss over training epochs indicates that our model is improving, and we look for it to eventually stabilize which indicates that the parameter values have approximately converged. When training our model, we consistently reached convergence within 20 epochs.
 
 \section{Results \& Analysis}
 
 \subsection{Evaluating model accuracy}
-First, we wanted to show that our models were accurate in predicting voter preferences. We did this by training our model on 70\% of the counties in our dataset and evaluating it on the remaining 30\% in different ways.
+First, we wanted to show that our models were accurate in predicting voter preferences in aggregate. We did this by training our model on 70\% of the counties in our dataset and evaluating it on the remaining 30\% in different ways.
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[scale=0.35]{training-loss}
+\includegraphics[scale=0.22]{training-loss-cropped}
 \end{center}
 \caption{Training loss for logistic regression voter model}
 \label{fig:training-loss}
 \end{figure}
-
 We can see in Figure \ref{fig:training-loss} that our training loss decreases over time and converges after around 10 epochs. We saw similar loss decrease and rates of convergence for our neural network model as well.
 
 \begin{figure}[H]
 \begin{center}
-\includegraphics[scale=0.35]{holdout-R2}
+\includegraphics[scale=0.28]{holdout-R2-both}
 \end{center}
 \caption{Training and Test $R^2$ for logistic regression voter model}
 \label{fig:holdout-R2}
 \end{figure}
 
-Figure \ref{fig:holdout-R2} shows model $R^2$ over time if we use logistic regression to represent individual voter behavior. The final training set $R^2$ for this model is 82.2\% and the final test set $R^2$ is 75.4\%.
+Figure \ref{fig:holdout-R2} shows model $R^2$ when predicting vote proportions within each \emph{precinct}, for both the training and holdout sets. Results are weighted by the vote count in the precinct. 
+
+The training paths are similar whether we use logistic regression or a neural network to model individual voter behavior. The final training set $R^2$ for the logistic regression was 82.2\% for training and 75.4\% for test. For the neural network, the respective values were 86.3\% and 75.1\%. Training set accuracy is higher in the neural network model, but test set accuracy is slightly lower. The neural network's additional complexity does not help us better model the data. We also tried adding $L_2$ regularization by setting $\lambda = 0.7$ as well as trying some other values, but we saw no improvement to test set $R^2$. As a result, we ran our subsequent experiments only with the logistic regression model for individual voter behavior.
+
 
 \begin{comment}
 \begin{figure}[H]
@@ -309,7 +311,6 @@ Figure \ref{fig:holdout-R2} shows model $R^2$ over time if we use logistic regre
 \end{comment}
 
 \begin{comment}Figure \ref{fig:holdout-R2-neural} shows model $R^2$ over time if we use a neural network to represent individual voter behavior.\end{comment}
-When we train a neural network model, the $R^2$ curve shape looks similar but the training set $R^2$ is 86.3\% and the test set $R^2$ is 75.1\%. Training set accuracy is higher than in the logistic regression model, but test set accuracy is slightly lower. The neural network's additional complexity does not help us better model the data. We also tried adding L2 regularization by setting $\lambda = 0.7$ as well as trying some other values, but we saw no improvement to test set $R^2$. As a result, we ran our subsequent experiments only with the logistic regression model for individual voter behavior.
 
 \subsection{Weak labeling results}
 
@@ -325,9 +326,9 @@ We apply two different forms of weak labels to gauge model performance at the in
 \label{fig:lanslideHist19}
 \end{figure}
 
-Figure \ref{fig:lanslideHist19} has the expected bimodal distribution - the voters are either heavily in favor of or heavily against Clinton.
+Figure \ref{fig:lanslideHist19} has the expected bimodal distribution -- the voters are either heavily in favor of or heavily against Clinton.
 
-In our second weak labeling validation, we assume that all primary voters supported their candidates' eventual nominee in the general election. This is a reasonable assumption, as primary voters tend to have strong party loyalty. To evaluate, we build our model on the training counties and removed the feature indicating whether or not voters voted in their respective primaries. We then evaluate our model only on test set voters who voted in a primary.
+In our second weak labeling validation, we assume that all primary voters supported their party's eventual nominee in the general election. This is a reasonable assumption, as primary voters tend to have strong party loyalty. To evaluate, we build our model on the training counties and removed the feature indicating whether or not voters voted in their respective primaries. We then evaluate our model only on test set voters who voted in a primary.
 
 \begin{figure}[H]
 \begin{center}
@@ -337,12 +338,11 @@ In our second weak labeling validation, we assume that all primary voters suppor
 \label{fig:primaryVoters19}
 \end{figure}
 
-Figure \ref{fig:primaryVoters19} has the expected bimodal distribution, indicating that the model has learned that primary voters are indeed more likely to vote along party lines in the general election as well.
+Figure \ref{fig:primaryVoters19} has the expected bimodal distribution, indicating the model has learned that primary voters are indeed more likely to vote along party lines in the general election.
 
 \subsection{Final model trained on all data}
-
-After we were convinced of the accuracy of the model, we then trained it using our entire dataset to build our final voter model. Our model coefficients are available in the below table. Note that positive values correspond to a higher probability of voting for Clinton.
-
+After confirming our model's predictive validity, we trained it on our entire dataset to build our final voter model. Coefficients are available in the below table. Positive values correspond to a higher probability of voting for Clinton.
+\begin{comment}
 \begin{table}[H]
 \centering
 \begin{tabular}{|l|c|}
@@ -367,28 +367,58 @@ Registered Republican & -1.154  \\
 \label{table:coeff}
 \caption{Model coefficients. Positive values correspond to a higher probability of voting for Clinton}
 \end{table}
-
-These results are in line with what we would expect. For example, older and lower income voters are more likely to vote for Trump while women and registered Democrats are more likely to vote for Clinton. These results also help show that we have developed an explanatory model for voter preference. 
+\end{comment}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+Model Term & Value \\
+\hline 
+Apartment Dweller & 1.231 \\
+Registered Democrat & 1.065  \\
+County College Educated \% & 0.306  \\
+Voted in the Democratic Primary & 0.287  \\
+County Population Density & 0.218  \\
+Voted Absentee 2012 & 0.152 \\
+is Female & 0.089  \\
+Voted Absentee 2014 & 0.083 \\
+County Latino \% & 0.045  \\
+County Black \% & 0.032  \\
+Voted In Person 2014 & -0.077 \\ 
+County Income & -0.109  \\
+County White \% & -0.119  \\
+Voted In Person 2012 & -0.178 \\
+Voted in the Republican Primary & -0.519  \\
+Age & -0.542  \\
+Registered Republican & -1.339  \\
+\hline
+\end{tabular}
+\label{table:coeff}
+\caption{Model coefficients. Positive values correspond to a higher probability of voting for Clinton}
+\end{table}
+These results are in line with our expectations. Democrats, younger voters, urban voters, and women are more likely to vote for Clinton while the opposite is true of Trump. These results increase confidence that we have developed an explanatory model for voter preference. 
 
 \section*{Conclusion and Future Work}
 
-We have used aggregated precinct-level election data to build a model predicting how individual voters will vote by using Poisson binomial GLMs. This is not only the first time in literature that individual voter prediction models have been built without relying on polling data or other unreliable sources, but also the first time that the Poisson binomial distribution has been used as a generalized linear model as well. We train our model via gradient descent using a normal approximation of the Poisson binomial distribution that we derive, and we validate the accuracy of the model using weak labels. We model individual voter behavior using both logistic regression as well as a simple neural network. After validating model accuracy, we retrain the model on the entire dataset to obtain our final model revealing individual voter preferences for Pennsylvania during the 2016 presidential elections. This type of model is incredibly valuable given the inherent unreliability of polling data, especially as evidenced in recent elections.
+We have combined aggregated precinct-level election data with information about individual voters to build a model predicting how individuals will vote. We implemented both logistic regression and neural network models to relate individual covariates to voting probabilities. We then trained these models via gradient descent, making use of a normal approximation to the Poisson binomial, which we derived. Our model's accuracy was validated using both aggregate vote totals and weak labels. After validating model accuracy, we retrain the model on the entire dataset to obtain our final model revealing individual voter preferences for Pennsylvania during the 2016 presidential elections. We believe this model would be a valuable resource for political organizations in voter targeting. 
 
-For future work, we'd like to further explore the idea of using neural networks to represent individual voter probabilities. Our investigation of neural networks yielded results that were close to the logistic regression approach. With further exploration and tuning of hyperparameters, we could likely obtain a neural network model that outperforms the linear model. We could also look at other regularization schemes such as dropout to reduce the gap between the training and test performance. In addition to investigating neural networks further we could also look at other regression models besides logistic regression to model individual voter behavior, for example the probit distribution.
+Our work contributes to the literature on learning individual associations from aggregate data, and is one of only a small number of such papers to work directly on political data. Our fitting method appears to be entirely novel, as we find no references in the literature to leveraging the Poisson binomial distribution in this way. 
 
-We would also like to revisit the data for counties that we were not able to use for our initial analysis so we can incorporate them into the analysis as well, and develop data pipelines that would allow us to efficiently repeat this analysis on other states and elections throughout the US. 
+For future work, we'd like to further explore the idea of using neural networks to compute individual voter probabilities. With further exploration and tuning of hyperparameters, we could likely obtain a neural network model that outperforms the logistic regression model. We could also look at other regularization schemes such as dropout to reduce the gap between the training and test performance. In addition to investigating neural networks further we could also look at other link functions, such as the probit, to model individual voter behavior from covariates. 
+
+We would also like to revisit the data for counties that we were not able to use for our initial analysis so we can incorporate them into the analysis as well, and develop data pipelines that would allow us to efficiently repeat this analysis on other states and elections throughout the U.S. 
 \end{multicols}
 
 \section*{Appendix: Lyapunov CLT Proof}
 
-Define $d_k = \sum_{i = 1}^n d_{k, i}$ to be the number of Democratic votes in precinct $k$, where $d_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. $d_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define $s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i})$. 
+Define $D_k = \sum_{i = 1}^n D_{k, i}$ to be the number of Democratic votes in precinct $k$, where $D_{k, i}$ is an indicator variable denoting whether person $i$ in precinct $k$ voted for Clinton. $D_k$ follows a Poisson binomial distribution with success probabilities $p_k = (p_{k, 1}, \dots, p_{k, n})$. Define $s_{k}^2 = \sum_{i = 1}^{n} p_{k, i} (1-p_{k, i})$. 
 We check the Lyapunov CLT \cite{billingsley1995probability} condition for the fourth moment: 
 
 \begin{align*}
-\lim_{n \to \infty} \frac{1}{s_k^4} \sum_{i = 1}^n E \left( (d_{k, i} - p_{k, i})^4 \right) &= \lim_{n \to \infty} \frac{\sum_{i = 1}^n p_{k, i}(1-p_{k, i}) \left( 3p_{k, i}^2 - 3p_{k, i} + 1 \right)}{\left(\sum_{i = 1}^n p_{k, i} \left( 1- p_{k, i} \right) \right)^2} \stackrel{?} = 0 
+\lim_{n \to \infty} \frac{1}{s_k^4} \sum_{i = 1}^n E \left( (D_{k, i} - p_{k, i})^4 \right) &= \lim_{n \to \infty} \frac{\sum_{i = 1}^n p_{k, i}(1-p_{k, i}) \left( 3p_{k, i}^2 - 3p_{k, i} + 1 \right)}{\left(\sum_{i = 1}^n p_{k, i} \left( 1- p_{k, i} \right) \right)^2} \stackrel{?} = 0 
 \end{align*}
 
-Observe that $3p_{k, i}^2 - 3p_{k, i} + 1 \in (0, 1)$ if $p_{k, i} \in (0, 1)$. Hence, the numerator is strictly less than $\sum_{i = 1}^n p_{k, i} (1 - p_{k, i})$. Hence, if we can guarantee the numerator grows without bound, then this limit is 0 and the Lyapunov CLT applies. We can do so using a simple condition, like enforcing that there is some $\epsilon > 0$ such that $\epsilon < \bar p_i < 1- \epsilon$ for all $i$ (i.e. the mean probability of voting for Clinton in a precinct never falls below some low threshold $\epsilon$ or above some high threshold $1-\epsilon$). 
+Observe that $3p_{k, i}^2 - 3p_{k, i} + 1 \in (0, 1)$ if $p_{k, i} \in (0, 1)$. Hence, the numerator is strictly less than $\sum_{i = 1}^n p_{k, i} (1 - p_{k, i})$. Thus, if we can guarantee the numerator grows without bound, then this limit is 0 and the Lyapunov CLT applies. We can do so using a simple condition, like enforcing that there is some $\epsilon > 0$ such that $\epsilon < \bar p_i < 1- \epsilon$ for all $i$ (i.e. the mean probability of voting for Clinton in a precinct never falls below some infinitesimal threshold $\epsilon$ or above $1-\epsilon$). 
 
 The Lypaunov CLT now tells us that: 
 \[ \frac{d_k - \sum_{i = 1}^{n} p_{k, i} }{s_k} \stackrel{d} \longrightarrow N(0, 1) \] 
@@ -397,7 +427,7 @@ The Lypaunov CLT now tells us that:
 \newpage
 
 \section{Contributions}
-Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the optimization algorithm and derived the CLT proof, while Nitin wrote the majority of the report and cleaned the data to allow us to use as many counties/precincts as possible. Both Evan and Nitin reviewed each other's work in addition to the parts they lead.
+Evan and Nitin both worked together to define the problem and scope it out as a Poisson GLM, and find the Pennsylvania state and OpenElections datasets. Evan wrote the majority of code for the optimization algorithm and derived the CLT proof, while Nitin wrote the majority of the report and cleaned the data to allow us to use as many counties/precincts as possible. Both Evan and Nitin reviewed each other's work in addition to the parts they led.
 
 {\small
 \bibliographystyle{ieee}
