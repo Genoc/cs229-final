@@ -121,7 +121,7 @@ elif weakLabels and test:
 	weakLabelDictionary = util.weaklabels(countyList, allData)
 
 # training loop
-numIterations = 10000 if stochasticGD else 50
+numIterations = 10000 if stochasticGD else 20
 isFirst = True 
 # different loops depending on whether or not we are doing stochastic or "batch" gradient descent
 if stochasticGD:
