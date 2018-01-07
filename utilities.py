@@ -172,16 +172,20 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		if (county == "MONTGOMERY"):        
 			index = trumpCountyVotes.loc[[125897,125907,126048,126055]].index
 			trumpCountyVotes = trumpCountyVotes.drop(index)   
-
 			index = clintonCountyVotes.loc[[125468,125478,125619,125626]].index
 			clintonCountyVotes = clintonCountyVotes.drop(index)
 		if (county == "DELAWARE"):
 			index = trumpCountyVotes.loc[[77074]].index
 			trumpCountyVotes = trumpCountyVotes.drop(index)   
-
 			index = clintonCountyVotes.loc[[76645]].index
 			clintonCountyVotes = clintonCountyVotes.drop(index)
+		if (county == "WESTMORELAND"):
+			index = trumpCountyVotes.loc[[193140]].index
+			trumpCountyVotes = trumpCountyVotes.drop(index)   
 
+			index = clintonCountyVotes.loc[[192834]].index
+			clintonCountyVotes = clintonCountyVotes.drop(index)
+        
 		# pull the precinct mapping
 		zoneCodes = pd.read_csv('../Statewide/' + countyFile.replace('FVE', 'Zone Codes'), 
 			sep = '\t', header = None)
@@ -191,7 +195,7 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		# map precincts from the voter file to precincts from the precinct-level election results
 		precincts = np.unique(data['District 1'])
 		if len(precincts) != len(trumpCountyVotes):
-			print 'Skipping county'
+			print('Skipping county')
 		zoneCodes = zoneCodes.sort_values(by = 'Precinct Name')
 		trumpCountyVotes = trumpCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
 		clintonCountyVotes = clintonCountyVotes.sort_values(['Municipality Name', 'Municipality Type Code', 'Municipality Breakdown Code 1', 'Municipality Breakdown Name 1', 'Municipality Breakdown Name 2'], ascending = [True, False, False, True, True])
