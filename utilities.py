@@ -168,8 +168,6 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 
 			# get the people who voted in 2016 in this precinct
 			precinctDF = data[(data['Precinct Code'] == precinct) & pd.notnull(data['DOB'])]
-			print(county)
-			print(precinct)
 
 			# construct the design matrix and determine the probabilities
 			# under the current parameter values 
@@ -203,13 +201,15 @@ def computeLikelihood(allData, parameterValues, approx = False, neuralNet = Fals
 		for precinct in allData[county].keys():
 
 			# get all the data
-			designMatrix = allData[county][precinct]['Design Matrix']
-			clintonVotes = allData[county][precinct]['Clinton Votes']
-			trumpVotes = allData[county][precinct]['Trump Votes']
+			designMatrix = allData[county][precinct]['Design Matrix'][:,:-1]
+			totalVotes = allData[county][precinct]['Voted']
+			totalNoVotes = allData[county][precinct]['Did Not Vote']
+			
 			if not neuralNet:
 				probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 				probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 			else:
+				# TODO - need to make sure this part works too. Looking only at neuralNet for now
 				hidden = designMatrix.dot(parameterValues['W1']) + np.transpose(parameterValues['b1'])
 				final = sigmoid(hidden).dot(parameterValues['W2']) + parameterValues['b2']
 				probabilities = np.array(sigmoid(final))
@@ -220,44 +220,43 @@ def computeLikelihood(allData, parameterValues, approx = False, neuralNet = Fals
 					allData, county, precinct, neuralNet)
 			else: 
 				pb = PoiBin(probabilities)
-				logLikelihood += np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
+				logLikelihood += np.log(max(2e-16, pb.pmf(int(round(totalVotes/float(totalNoVotes + \
 					clintonVotes) * len(probabilities))))))
-
 	return logLikelihood
 
 # function to compute the log likelihood for a given county
 def computePrecinctLikelihood(parameterValues, allData, county, precinct):
 
 	# get all the data
-	designMatrix = allData[county][precinct]['Design Matrix']
-	clintonVotes = allData[county][precinct]['Clinton Votes']
-	trumpVotes = allData[county][precinct]['Trump Votes']
+	designMatrix = allData[county][precinct]['Design Matrix'][:,:-1]
+	totalVotes = allData[county][precinct]['Voted']
+	totalNoVotes = allData[county][precinct]['Did Not Vote']
 
 	probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 	probabilities = [max(p, 0.0) for p in probabilities.tolist()[0]]
 
 	# get the result
 	pb = PoiBin(probabilities)
-	return np.log(max(2e-16, pb.pmf(int(round(clintonVotes/float(trumpVotes + \
-		clintonVotes) * len(probabilities))))))
+	return np.log(max(2e-16, pb.pmf(int(round(totalVotes/float(totalNoVotes + \
+		totalVotes) * len(probabilities))))))
 
 # normal approximation
 def computePrecinctLikelihood_normalApprox(parameterValues, allData, county, precinct, neuralNet = False):
 
 	# get all the data
-	designMatrix = allData[county][precinct]['Design Matrix']
-	clintonVotes = allData[county][precinct]['Clinton Votes']
-	trumpVotes = allData[county][precinct]['Trump Votes']
+	designMatrix = allData[county][precinct]['Design Matrix'][:,:-1]
+	totalVotes = allData[county][precinct]['Voted']
+	totalNoVotes = allData[county][precinct]['Did Not Vote']
 
 	# compute the probabilities 
 	if not neuralNet:
 		probabilities = np.array(1/(1 + np.exp(-designMatrix.dot(parameterValues))))
-		d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[1])
+		d = round(totalVotes/float(totalNoVotes + totalVotes) * probabilities.shape[1])
 	else:
 		hidden = designMatrix.dot(parameterValues['W1']) + np.transpose(parameterValues['b1'])
 		final = sigmoid(hidden).dot(parameterValues['W2']) + parameterValues['b2']
 		probabilities = np.array(sigmoid(final))
-		d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[0])
+		d = round(totalVotes/float(totalNoVotes + totalVotes) * probabilities.shape[0])
 
 	mu = np.sum(probabilities)
 	sd = np.sqrt(np.sum(probabilities * (1-probabilities)))
@@ -269,13 +268,13 @@ def computePrecinctLikelihood_normalApprox(parameterValues, allData, county, pre
 def computePrecinctLikelihood_binomialApprox(parameterValues, allData, county, precinct):
 
 	# get all the data
-	designMatrix = allData[county][precinct]['Design Matrix']
-	clintonVotes = allData[county][precinct]['Clinton Votes']
-	trumpVotes = allData[county][precinct]['Trump Votes']
+	designMatrix = allData[county][precinct]['Design Matrix'][:,:-1]
+	totalVotes = allData[county][precinct]['Voted']
+	totalNoVotes = allData[county][precinct]['Did Not Vote']
 
 	probabilities = 1/(1 + np.exp(-designMatrix.dot(parameterValues)))
 	mu = np.mean(probabilities)
-	d = round(clintonVotes/float(trumpVotes + clintonVotes) * probabilities.shape[1])
+	d = round(totalVotes/float(totalNoVotes + totalVotes) * probabilities.shape[1])
 
 	# get the result
 	return np.log(max(2e-16, scipy.stats.binom(len(probabilities), mu).pmf(d)))
@@ -352,7 +351,7 @@ def evaluateTestSet(allData, parameterValues, countyTest, clintonPropSumSq, tota
 		for precinct in allData[county].keys():
 
 			# get all the data
-			designMatrix = allData[county][precinct]['Design Matrix']
+			designMatrix = allData[county][precinct]['Design Matrix'][:,:-1]
 			clintonVotes = allData[county][precinct]['Clinton Votes']
 			trumpVotes = allData[county][precinct]['Trump Votes']
 
@@ -478,7 +477,7 @@ def evaluatePrimaryVoters(allData, parameterValues, countyTest, iter):
 		for precinct in allData[county].keys():
 
 			# get all the data
-			des = allData[county][precinct]['Design Matrix']
+			des = allData[county][precinct]['Design Matrix'][:,:-1]
 			designMatrix = np.delete(des, [3,4], axis = 1)
 
 
