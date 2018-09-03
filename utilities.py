@@ -167,7 +167,9 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 		for precinct in precincts:
 
 			# get the people who voted in 2016 in this precinct
-			precinctDF = data[data['Precinct Code'] == precinct]
+			precinctDF = data[(data['Precinct Code'] == precinct) & pd.notnull(data['DOB'])]
+			print(county)
+			print(precinct)
 
 			# construct the design matrix and determine the probabilities
 			# under the current parameter values 
@@ -187,7 +189,6 @@ def preProcess(countyFiles, vfColumnNames, countyMapping, electionResults, predi
 			precinctData['Did Not Vote'] = totalNoVotes
 			countyData[precinctName.strip()] = precinctData
 			
-			t()
 		allData[county] = countyData
 	# store what we need so we don't regenerate the data every time
 	pickle.dump(allData, open( "allData.pickle", "wb" ) )

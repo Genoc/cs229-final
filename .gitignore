@@ -1,3 +1,4 @@
 *.pyc
 trainingPath.txt
 *.pdf
+.DS_Store

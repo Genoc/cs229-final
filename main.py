@@ -12,7 +12,7 @@ import sys
 from poibin import PoiBin
 from pdb import set_trace as t
 
-debug = True
+debug = False
 interceptByCounty = False 
 
 # constants
