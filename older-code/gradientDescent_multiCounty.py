@@ -53,7 +53,7 @@ interceptByCounty = False
 # define model and initial parameters
 predictors = ['Party Code','Primary', 'Gender', 'Age', '2012 General', '2014 General', 'Apartment Dweller',\
 	'County White Percent', 'County Black Percent', 'County Latino Percent', 'County College Educated Percent',\
-	'County Population Density', 'County Income'] 
+	'County Population Density', 'County Income', '2016 General'] 
 predictorMetaData = {'Party Code': {'len': 2, 'names': ['Registered Dem', 'Registered Rep']}, 
 					 'Primary': {'len': 2, 'names': ['Primary Dem', 'Primary Rep']},
 					 'Gender': {'len': 2, 'names': ['Female', 'Male']},
